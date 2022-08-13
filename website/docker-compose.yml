@@ -9,4 +9,5 @@ services:
     environment:
       - GIN_MODE=release
     ports:
-      - '80:8080'
+      - '80:80'
+      - '443:443'
