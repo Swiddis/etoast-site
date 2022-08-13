@@ -11,7 +11,9 @@ import (
 
 func main() {
 	router := gin.Default()
-	router.Use(secure.New(secure.DefaultConfig()))
+	secureConfig := secure.DefaultConfig()
+	secureConfig.ContentSecurityPolicy = "default-src 'self' etoast.me; style-src cdn.simplecss.org;"
+	router.Use(secure.New(secureConfig))
 	router.SetTrustedProxies([]string{})
 	router.Static("/", "./static")
 	err := http.Serve(autocert.NewListener("etoast.me"), router)
