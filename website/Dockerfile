@@ -8,5 +8,6 @@ FROM alpine:latest AS prod
 WORKDIR /app
 COPY  ./static ./static
 COPY --from=build /app/app ./app
+EXPOSE 80:80
+EXPOSE 443:443
 CMD ./app
-
