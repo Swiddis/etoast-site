@@ -1,0 +1,109 @@
+{{ define "writing/learning_rust.tmpl" }}
+{{ template "globals/header.tmpl" .}}
+<section>
+    <h1>My Experience Learning Rust</h1>
+    <time datetime="2022-08-31">August 31, 2022</time>
+    <p>
+        Recently, I started learning <a href="https://www.rust-lang.org/">Rust</a>.
+        It's a language that's taking the developer community by storm, and for good reason.
+        There's a very genuine sense to the words "if it compiles, then it works."
+        The language is absurdly good at identifying common mistakes and helping correct them.
+    </p>
+    <p>
+        That said, there were quite a bit of barriers that I ran into while learning the basics of the language.
+        For the most part I've gotten past them now, but I want to write down what held me up.
+        The intended audience is primarily new Rustaceans looking for a "What I wish I knew."
+        Mostly, this is a list of things that are in the tutorials,
+        but not well-presented enough for my tastes.
+    </p>
+    <p>
+        To answer the titular question before I get lost in details:
+        it was pretty frustrating.
+        But computer science is just frustrating sometimes, and I got through it in the end.
+        Part of this is that I didn't read the Rust book thoroughly.
+        I don't have enough patience for it: as an experienced developer I want to just jump into the code and learn the new stuff quickly.
+        I think that there would be some benefit to learning from <a href="https://nim-lang.org/documentation.html">Nim's Approach to Organizing Documentation</a>.
+    </p>
+</section>
+<section>
+    <h2>Error Handling</h2>
+    <p>
+        There are two main types of error handling: exception-based and return-based.
+        Rust is return-based: errors are returned as function results.
+        There are two types in <a href="https://doc.rust-lang.org/std/prelude/index.html">the prelude</a>: <code>Result</code> and <code>Option</code>.
+    </p>
+    <p>
+        The two types wrap internal values in a named wrapper of sorts.
+        For <code>Result</code> it's <code>Ok(val)</code> and <code>Err(val)</code>.
+        For <code>Option</code> it's <code>Some(val)</code> and <code>None</code>.
+        You can guess from the names what the semantics are.
+        Handling errors is done through either <code>unwrap</code> (prototyping) or <code>match</code> (everything else).
+        There's also some nice syntactic sugar with <code>?</code>.
+    </p>
+    <p>
+        Error handling isn't particularly fancy, but it's not as well-documented as I'd like.
+        It took me quite a while (and the help of a more skilled Rustacean) to figure out.
+    </p>
+</section>
+<section>
+    <h2>Ownership</h2>
+    <p>
+        There are lots of explanations of ownership.
+        Here's the very simple version I'd have liked:
+    </p>
+    <p>
+        Every variable can only be "owned" by one scope at a time.
+        If you give a variable to another scope, you cannot use it from the original scope anymore.
+        Avoid this by passing references instead -- this way, instead of stealing the variable, the function "borrows" it.
+        The borrow checker seems kind-of infamous, but it's not that bad, just be careful about giving values away.
+    </p>
+</section>
+<section>
+    <h2>Lifetimes</h2>
+    <p>
+        This one also isn't too bad but it's less well-documented than I'd like.
+        Usually, the compiler knows how long variables need to stick around, but sometimes it doesn't.
+        You fix this by giving each value in function signatures and types a named lifetime <code>'lifetime_name</code>.
+        Usually just single letters are used, <code>'a 'b 'c</code>.
+        If two values share a letter, it means that they must last (at least) the same amount of time.
+    </p>
+    <p>
+        It's tricky to understand by reading, I googled for dedicated tutorials and experimented with small programs.
+        Once you write a few programs using lifetimes, it clicks.
+        I think it's better to learn them in isolation with artificial examples before you try to add them to your existing complex projects.
+        <a href="https://www.reddit.com/r/rust/comments/bltnfv/">This page</a> has a few tutorials and explanations,
+        I got understanding after reading through the articles and replies.
+    </p>
+</section>
+<section>
+    <h2>Good Tutorials</h2>
+    <p>
+        For getting the basics down, this one helped a lot:
+        <a href="https://cglab.ca/~abeinges/blah/too-many-lists/book/README.html">Learning Rust With Entirely Too Many Linked Lists</a>.
+    </p>
+    <p>
+        In addition, just do some project-based learning, find some ideas you know and try to implement them.
+        I got the gist after a few programs.
+        That said, I think finding someone who knows the language to help guide you is big.
+        My experience has been that the documentation just isn't enough for beginners;
+        however, I did have a friend to walk me through it, and I learned eventually.
+    </p>
+</section>
+<section>
+    <h2>Do I recommend Rust?</h2>
+    <p>
+        Yes.
+        It's hard to get into, but I think it deserves the hype it gets.
+        Even if you don't end up liking it, there's lots of cool new ideas here to apply in other languages.
+        It's a nice breath of fresh air from my usual tech stack of Python, Java,  and JS.
+    </p>
+    <p>
+        I'll probably write more on Rust as I learn more,
+        I just wanted to write some of my struggles with learning it before I forget how I felt.
+    </p>
+    <p>
+        But seriously, it's creepy just having a program work correctly the first time it compiles.
+    </p>
+</section>
+{{ template "globals/footer.tmpl" .}}
+{{ end }}

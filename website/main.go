@@ -23,6 +23,9 @@ func AddRoutes(router *gin.Engine) {
 	router.GET("/writing/programming_books", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "writing/programming_books.tmpl", gin.H{})
 	})
+	router.GET("/writing/learning_rust", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "writing/learning_rust.tmpl", gin.H{})
+	})
 }
 
 func main() {
