@@ -5,6 +5,16 @@ use pulldown_cmark::{html, Parser};
 use std::{fs, path::PathBuf};
 use serde_json::json;
 
+fn format_markdown(markdown: &str) -> String {
+    let sections = markdown.split("---");
+    sections.into_iter().map(|section| {
+        let parser = Parser::new(&section);
+        let mut section_html = String::new();
+        html::push_html(&mut section_html, parser);
+        format!("<section>{}</section>", section_html)
+    }).collect()
+}
+
 #[get("/")]
 fn index() -> Redirect {
     Redirect::to(uri!("/home"))
@@ -14,12 +24,10 @@ fn index() -> Redirect {
 fn markdown(file: PathBuf) -> Option<Template> {
     let path = format!("static/{}.md", file.as_path().display());
     let markdown = fs::read_to_string(path).ok()?;
-    let parser = Parser::new(&markdown);
-    let mut html_output = String::new();
-    html::push_html(&mut html_output, parser);
+    let html = format_markdown(&markdown);
     let context = json!({
         "title": file.as_path().display().to_string(),
-        "content": html_output,
+        "content": html,
     });
     Some(Template::render("template", &context))
 }
