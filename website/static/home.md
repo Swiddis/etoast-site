@@ -6,6 +6,7 @@ Check out the "About Me" page primarily, and look in the "Writing" page if you w
 
 See also, a few other friends who also have sites:
 
+- [attenius](https://atteniusll.blogspot.com/)
 - [juh](https://juh.gay/)
 - [kaisa](http://www.kaisavi.net/)
 - [travja](https://travja.dev/)
