@@ -9,4 +9,5 @@ See also, a few other friends who also have sites:
 - [attenius](https://atteniusll.blogspot.com/)
 - [juh](https://juh.gay/)
 - [kaisa](http://www.kaisavi.net/)
+- [pndyjack](https://site.pndyjack.com/)
 - [travja](https://travja.dev/)
