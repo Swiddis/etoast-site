@@ -1,5 +1,5 @@
 #[macro_use] extern crate rocket;
-use rocket::response::Redirect;
+use rocket::{response::Redirect, fs::FileServer};
 use rocket_dyn_templates::Template;
 use pulldown_cmark::{html, Parser};
 use std::{fs, path::PathBuf};
@@ -20,6 +20,11 @@ fn index() -> Redirect {
     Redirect::to(uri!("/home"))
 }
 
+#[get("/favicon.ico")]
+fn favicon() -> Redirect {
+    Redirect::to(uri!("/assets/favicon.ico"))
+}
+
 #[get("/<file..>")]
 fn markdown(file: PathBuf) -> Option<Template> {
     let path = format!("static/{}.md", file.as_path().display());
@@ -35,7 +40,8 @@ fn markdown(file: PathBuf) -> Option<Template> {
 #[rocket::main]
 async fn main() {
     rocket::build()
-        .mount("/", routes![index, markdown])
+        .mount("/assets", FileServer::from("static/assets").rank(-10))
+        .mount("/", routes![index, favicon, markdown])
         .attach(Template::fairing())
         .launch()
         .await
