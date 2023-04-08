@@ -122,7 +122,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
+          passphrase: ${{ secrets.VPS_PASSPHRASE }}
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           script: |
             docker compose pull rocket
