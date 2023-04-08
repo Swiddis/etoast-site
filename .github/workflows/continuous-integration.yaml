@@ -91,7 +91,7 @@ jobs:
           args: -- -D warnings
 
   deploy-docker:
-    name: Deploy to Docker
+    name: Push to DockerHub
     if: ${{ github.ref == 'refs/heads/main' }}
     needs: test
     runs-on: ubuntu-latest
