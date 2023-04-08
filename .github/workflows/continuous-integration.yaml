@@ -89,6 +89,6 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_PRIVATE_KEY }}
-        run: |
-          docker compose pull rocket
-          docker compose up --detach
+          script: |
+            docker compose pull rocket
+            docker compose up --detach
