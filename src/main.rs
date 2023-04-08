@@ -24,7 +24,7 @@ fn make_title(path: &str) -> String {
     let result = words.collect::<Vec<&str>>().join(" ");
     match result.as_str() {
         "" => "page".to_owned(),
-        _ => result.trim().to_owned()
+        _ => result.trim().to_owned(),
     }
 }
 
@@ -78,7 +78,10 @@ mod test {
         let client = Client::tracked(rocket()).unwrap();
         let response = client.get("/favicon.ico").dispatch();
         assert_eq!(response.status(), Status::SeeOther);
-        assert_eq!(response.headers().get_one("Location"), Some("/assets/favicon.ico"));
+        assert_eq!(
+            response.headers().get_one("Location"),
+            Some("/assets/favicon.ico")
+        );
     }
 
     #[test]
@@ -86,7 +89,10 @@ mod test {
         let client = Client::tracked(rocket()).unwrap();
         let response = client.get("/about").dispatch();
         assert_eq!(response.status(), Status::Ok);
-        assert!(response.into_string().unwrap().contains("<h1>About Me</h1>"));
+        assert!(response
+            .into_string()
+            .unwrap()
+            .contains("<h1>About Me</h1>"));
     }
 
     #[test]
