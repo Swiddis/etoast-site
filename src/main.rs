@@ -1,6 +1,6 @@
 #[macro_use]
 extern crate rocket;
-use ::markdown::to_html;
+use ::markdown::{to_html_with_options, CompileOptions, Options};
 use rocket::{fs::FileServer, response::Redirect, Build, Rocket};
 use rocket_dyn_templates::Template;
 use serde_json::json;
@@ -10,7 +10,22 @@ use std::{fs, path::PathBuf};
 fn format_markdown(markdown: &str) -> String {
     markdown
         .split("---")
-        .map(|x| format!("<section>{}</section>", to_html(x)))
+        .map(|md| {
+            format!(
+                "<section>{}</section>",
+                to_html_with_options(
+                    md,
+                    &Options {
+                        compile: CompileOptions {
+                            allow_dangerous_html: true,
+                            ..CompileOptions::default()
+                        },
+                        ..Options::default()
+                    }
+                )
+                .expect("markdown could be parsed")
+            )
+        })
         .collect()
 }
 
@@ -61,7 +76,7 @@ fn rocket() -> Rocket<Build> {
 #[cfg(test)]
 mod test {
     use super::rocket;
-    use crate::{make_title, format_markdown};
+    use crate::{format_markdown, make_title};
     use rocket::{http::Status, local::blocking::Client};
 
     #[test]
