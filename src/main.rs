@@ -1,22 +1,14 @@
 #[macro_use]
 extern crate rocket;
-use pulldown_cmark::{html, Parser};
+use std::io;
+use ::markdown::to_html;
 use rocket::{fs::FileServer, response::Redirect, Build, Rocket};
 use rocket_dyn_templates::Template;
 use serde_json::json;
 use std::{fs, path::PathBuf};
 
 fn format_markdown(markdown: &str) -> String {
-    let sections = markdown.split("---");
-    sections
-        .into_iter()
-        .map(|section| {
-            let parser = Parser::new(section);
-            let mut section_html = String::new();
-            html::push_html(&mut section_html, parser);
-            format!("<section>{}</section>", section_html)
-        })
-        .collect()
+    to_html(markdown)
 }
 
 fn make_title(path: &str) -> String {
@@ -26,6 +18,16 @@ fn make_title(path: &str) -> String {
         "" => "page".to_owned(),
         _ => result.trim().to_owned(),
     }
+}
+
+fn markdown_context(path: &str) -> Result<serde_json::Value, io::Error> {
+    let markdown = fs::read_to_string(path)?;
+    let html = format_markdown(&markdown);
+    let title = make_title(path);
+    Ok(json!({
+        "title": title,
+        "content": html,
+    }))
 }
 
 #[get("/")]
@@ -41,13 +43,7 @@ fn favicon() -> Redirect {
 #[get("/<file..>")]
 fn markdown(file: PathBuf) -> Option<Template> {
     let path = format!("static/{}.md", file.as_path().display());
-    let markdown = fs::read_to_string(path).ok()?;
-    let html = format_markdown(&markdown);
-    let title = make_title(&file.as_path().display().to_string());
-    let context = json!({
-        "title": title,
-        "content": html,
-    });
+    let context = markdown_context(&path).ok()?;
     Some(Template::render("template", context))
 }
 
