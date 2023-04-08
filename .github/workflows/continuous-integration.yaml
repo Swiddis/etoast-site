@@ -62,3 +62,33 @@ jobs:
         with:
           command: clippy
           args: -- -D warnings
+
+  deploy:
+    name: Deploy to VPS
+    if: ${{ github.ref == 'main' }}
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: Build Docker image
+        run: |
+          docker build -t swiddis/etoast-site
+      - name: Push Docker image
+        run: |
+          docker push swiddis/etoast-site
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+        run: |
+          docker compose pull rocket
+          docker compose up --detach
