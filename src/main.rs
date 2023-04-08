@@ -1,14 +1,17 @@
 #[macro_use]
 extern crate rocket;
-use std::io;
 use ::markdown::to_html;
 use rocket::{fs::FileServer, response::Redirect, Build, Rocket};
 use rocket_dyn_templates::Template;
 use serde_json::json;
+use std::io;
 use std::{fs, path::PathBuf};
 
 fn format_markdown(markdown: &str) -> String {
-    to_html(markdown)
+    markdown
+        .split("---")
+        .map(|x| format!("<section>{}</section>", to_html(x)))
+        .collect()
 }
 
 fn make_title(path: &str) -> String {
@@ -58,7 +61,7 @@ fn rocket() -> Rocket<Build> {
 #[cfg(test)]
 mod test {
     use super::rocket;
-    use crate::make_title;
+    use crate::{make_title, format_markdown};
     use rocket::{http::Status, local::blocking::Client};
 
     #[test]
@@ -105,5 +108,12 @@ mod test {
         assert_eq!(make_title("/static/abc-123"), "abc 123");
         assert_eq!(make_title("/static/abc-"), "abc");
         assert_eq!(make_title("/static/-123"), "123");
+    }
+
+    #[test]
+    fn test_hr_is_sectioned() {
+        let markdown = "# Title\n\n---\n\n## Subsection";
+        let result = format_markdown(markdown);
+        assert_eq!(result.matches("<section>").count(), 2)
     }
 }
