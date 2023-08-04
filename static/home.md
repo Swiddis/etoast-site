@@ -7,7 +7,7 @@ Check out the "About Me" page primarily, and look in the "Writing" page if you w
 See also, a few other friends who also have sites:
 
 - [andrew](https://andrew-russian.bearblog.dev/)
-- [attenius](https://atteniusll.blogspot.com/)
+- [attenius](https://atian.bearblog.dev/)
 - [juh](https://juh.gay/)
 - [kaisa](https://www.kaisavi.net/)
 - [pndyjack](https://site.pndyjack.com/)
