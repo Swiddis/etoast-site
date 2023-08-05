@@ -1,5 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 use pulldown_cmark::{html, Parser};
 use rocket::fs::NamedFile;
 use rocket::response::Redirect;
