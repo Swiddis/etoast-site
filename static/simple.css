@@ -512,7 +512,7 @@
     border: none;
     height: 1px;
     background: var(--border);
-    margin: 1rem auto;
+    margin: 3rem auto;
   }
   
   mark {
