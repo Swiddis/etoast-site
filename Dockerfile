@@ -13,6 +13,7 @@ RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 FROM scratch
 COPY --from=builder /usr/local/cargo/bin/etoast .
+COPY content ./content
 COPY static ./static
 COPY templates ./templates
 ENV ROCKET_ADDRESS=0.0.0.0
