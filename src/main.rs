@@ -3,7 +3,8 @@
 use pulldown_cmark::{html, Parser};
 use rocket::fs::NamedFile;
 use rocket::response::Redirect;
-use rocket::response::content::RawHtml;
+use rocket_dyn_templates::Template;
+use rocket_dyn_templates::serde::json::json;
 
 #[macro_use]
 extern crate rocket;
@@ -16,11 +17,14 @@ fn markdown_to_html(input: &str) -> String {
 }
 
 #[get("/<file..>")]
-fn serve_markdown(file: std::path::PathBuf) -> Option<RawHtml<String>> {
+fn serve_markdown(file: std::path::PathBuf) -> Option<Template> {
     let file_path = format!("./content/{}.md", file.display());
     if let Ok(content) = std::fs::read_to_string(file_path) {
         let html_content = markdown_to_html(&content);
-        Some(RawHtml(html_content))
+        Some(Template::render("main", json!({
+            "title": file.display().to_string(),
+            "content": html_content
+        })))
     } else {
         None
     }
@@ -41,6 +45,7 @@ async fn serve_home() -> Redirect {
 async fn main() -> Result<(), rocket::Error> {
     rocket::build()
         .mount("/", routes![serve_markdown, serve_static, serve_home])
+        .attach(Template::fairing())
         .launch()
         .await?;
     Ok(())
