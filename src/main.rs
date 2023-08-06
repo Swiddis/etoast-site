@@ -22,7 +22,6 @@ lazy_static! {
             }
         };
         tera.register_filter("markdown", custom_filters::markdown);
-        println!("{:?}", tera);
         tera
     };
 }
@@ -57,7 +56,6 @@ fn catch_404() -> Redirect {
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
-    println!("{:?}", TERA.get_template_names().collect::<Vec<&str>>());
     rocket::build()
         .mount("/", routes![serve_static, serve_page, serve_home])
         .register("/", catchers![catch_404])
