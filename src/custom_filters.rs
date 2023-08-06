@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use pulldown_cmark::{html, Parser};
 use rocket_dyn_templates::tera::*;
+use std::collections::HashMap;
 
 pub fn markdown(value: &Value, _: &HashMap<String, Value>) -> Result<Value> {
     let text = try_get_value!("markdown", "value", String, value);
