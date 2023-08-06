@@ -7,7 +7,7 @@ use rocket::fs::NamedFile;
 use rocket::response::content::RawHtml;
 use rocket::response::Redirect;
 use rocket_dyn_templates::tera::Context;
-use rocket_dyn_templates::{Template, tera::Tera};
+use rocket_dyn_templates::{tera::Tera, Template};
 
 #[macro_use]
 extern crate rocket;
@@ -28,7 +28,7 @@ lazy_static! {
 
 #[get("/<file..>")]
 fn serve_page(file: std::path::PathBuf) -> Option<RawHtml<String>> {
-    let template_name = format!("{}.html", file.display().to_string());
+    let template_name = format!("{}.html", file.display());
     match TERA.render(&template_name, &Context::new()) {
         Ok(html) => Some(RawHtml(html)),
         Err(e) => {
