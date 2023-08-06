@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use lazy_static::lazy_static;
 use rocket::fs::NamedFile;
 use rocket::response::content::RawHtml;
+use rocket::response::Redirect;
 use rocket_dyn_templates::tera::Context;
 use rocket_dyn_templates::{Template, tera::Tera};
 
@@ -50,8 +51,8 @@ async fn serve_home() -> Option<RawHtml<String>> {
 }
 
 #[catch(404)]
-fn catch_404() -> Option<RawHtml<String>> {
-    serve_page(PathBuf::from("404"))
+fn catch_404() -> Redirect {
+    Redirect::to("/404")
 }
 
 #[rocket::main]

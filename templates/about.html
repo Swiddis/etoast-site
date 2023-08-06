@@ -1,3 +1,7 @@
+{% extends "index.html" %}
+{% block title %}About Me{% endblock title %}
+{% block content %}
+{% filter markdown %}
 # About Me
 
 Hi, I'm ExaltedToast, and I'm a distributed systems engineer.
@@ -56,3 +60,5 @@ Finally, here's some more socials. The rest of my personal social media is priva
 
 * [GitHub](https://github.com/Swiddis)
 * [LinkedIn](https://www.linkedin.com/in/simeon-widdis/)
+{% endfilter %}
+{% endblock content %}

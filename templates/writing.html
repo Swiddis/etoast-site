@@ -1,3 +1,7 @@
+{% extends "index.html" %}
+{% block title %}About Me{% endblock title %}
+{% block content %}
+{% filter markdown %}
 # Writing
 
 This is my little writing repository for blethering about miscellanious topics.
@@ -9,3 +13,5 @@ Keep this in mind if citing any of this.
 ## Learning
 
 * [Five(ish) Books For All Programmers](/writing/programming-books)
+{% endfilter %}
+{% endblock content %}
