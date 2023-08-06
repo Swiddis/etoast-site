@@ -1,33 +1,40 @@
-use pulldown_cmark::{html, Parser};
+mod custom_filters;
+
+use std::path::PathBuf;
+
+use lazy_static::lazy_static;
 use rocket::fs::NamedFile;
+use rocket::response::content::RawHtml;
 use rocket::response::Redirect;
-use rocket_dyn_templates::serde::json::json;
-use rocket_dyn_templates::Template;
+use rocket_dyn_templates::tera::Context;
+use rocket_dyn_templates::{Template, tera::Tera};
 
 #[macro_use]
 extern crate rocket;
 
-fn markdown_to_html(input: &str) -> String {
-    let parser = Parser::new(input);
-    let mut html_output = String::new();
-    html::push_html(&mut html_output, parser);
-    html_output
+lazy_static! {
+    static ref TERA: Tera = {
+        let mut tera = match Tera::new("./templates/**/*") {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Parsing error(s): {}", e);
+                ::std::process::exit(1);
+            }
+        };
+        tera.register_filter("markdown", custom_filters::markdown);
+        tera
+    };
 }
 
 #[get("/<file..>")]
-fn serve_markdown(file: std::path::PathBuf) -> Option<Template> {
-    let file_path = format!("./content/{}.md", file.display());
-    if let Ok(content) = std::fs::read_to_string(file_path) {
-        let html_content = markdown_to_html(&content);
-        Some(Template::render(
-            "main",
-            json!({
-                "title": file.display().to_string(),
-                "content": html_content
-            }),
-        ))
-    } else {
-        None
+fn serve_page(file: std::path::PathBuf) -> Option<RawHtml<String>> {
+    let template_name = format!("{}.html", file.display().to_string());
+    match TERA.render(&template_name, &Context::new()) {
+        Ok(html) => Some(RawHtml(html)),
+        Err(e) => {
+            println!("Error retrieving '{}': {}", template_name, e);
+            None
+        }
     }
 }
 
@@ -38,14 +45,20 @@ async fn serve_static(file: std::path::PathBuf) -> Option<NamedFile> {
 }
 
 #[get("/")]
-async fn serve_home() -> Redirect {
-    Redirect::to("/home")
+async fn serve_home() -> Option<RawHtml<String>> {
+    serve_page(PathBuf::from("index"))
+}
+
+#[catch(404)]
+fn catch_404() -> Redirect {
+    Redirect::to("/404")
 }
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
     rocket::build()
-        .mount("/", routes![serve_markdown, serve_static, serve_home])
+        .mount("/", routes![serve_static, serve_page, serve_home])
+        .register("/", catchers![catch_404])
         .attach(Template::fairing())
         .launch()
         .await?;

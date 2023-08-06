@@ -1,3 +1,7 @@
+{% extends "index.html" %}
+{% block title %}About Me{% endblock title %}
+{% block content %}
+{% filter markdown %}
 # Five(ish) Books For All Programmers
 
 August 13, 2022
@@ -26,3 +30,5 @@ These 4 books lay the foundations for how to be a good programmer philosophicall
 - In the general case, for beginners or people who haven't picked a field, that book is *[Clean Code](https://www.amazon.com/Clean-Code-Handbook-Software-Craftsmanship/dp/0132350882)*. For beginners it's better to read this second (after Lockhart's Lament). It's considerably more technical than the other books on this list, getting much more into the code itself. It teaches exactly what it says on the cover.
 - In my specific case, the book is *[Designing Data-Intensive Applications](https://dataintensive.net/)*. This is a nice primer for general systems design, and lays a solid foundation to get more into distributed systems engineering.
 - If you want to get into any particular field, I would do some research on the commonly recommended books and insert the top one here.
+{% endfilter %}
+{% endblock content %}

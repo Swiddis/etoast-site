@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}etoast.me{% endblock title %}</title>
+    <link rel="stylesheet" href="/static/simple.css">
+</head>
+
+<body>
+    <header>
+        <h1>etoast.me</h1>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/about">About Me</a>
+            <a href="/writing">Writing</a>
+        </nav>
+    </header>
+    <main>
+{% block content %}
+{% filter markdown %}
+# Welcome
+
+This is a website for my diatribes on things.
+It's not updated very actively, but nonetheless it's mine.
+Check out the "About Me" page primarily, and look in the "Writing" page if you want.
+
+See also, a few other friends who also have sites:
+
+- [andrew](https://andrew-russian.bearblog.dev/)
+- [attenius](https://atian.bearblog.dev/)
+- [juh](https://juh.gay/)
+- [kaisa](https://www.kaisavi.net/)
+- [pndyjack](https://site.pndyjack.com/)
+- [travja](https://travja.dev/)
+{% endfilter %}
+{% endblock content %}
+    </main>
+</body>
+
+</html>
