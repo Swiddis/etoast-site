@@ -126,4 +126,4 @@ jobs:
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           script: |
             docker compose pull rocket
-            docker compose up --detach
+            docker compose up rocket --detach
