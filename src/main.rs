@@ -1,9 +1,13 @@
 mod custom_filters;
 
-use axum::{extract, response::{Html, IntoResponse, Redirect}, routing::get, Router, http::StatusCode};
+use axum::{
+    http::{StatusCode, Uri},
+    response::Html,
+    Router,
+};
 use lazy_static::lazy_static;
 use tera::{Context, ErrorKind, Tera};
-use tower_http::services::ServeDir;
+use tower_http::services::{ServeDir, ServeFile};
 
 lazy_static! {
     static ref TERA: Tera = {
@@ -19,8 +23,16 @@ lazy_static! {
     };
 }
 
-async fn serve_page(extract::Path(path): extract::Path<String>) -> (StatusCode, Html<String>) {
-    let template_name = format!("{}.html", path);
+fn uri_to_template_name(uri: Uri) -> String {
+    let path = uri.path();
+    match path {
+        "" | "/" => "index.html".to_owned(),
+        _ => format!("{}.html", path.strip_prefix("/").unwrap_or(path)).to_owned()
+    }
+}
+
+async fn serve_page(uri: Uri) -> (StatusCode, Html<String>) {
+    let template_name = uri_to_template_name(uri);
     match TERA.render(&template_name, &Context::new()) {
         Ok(html) => (StatusCode::OK, Html(html)),
         Err(err) => match err.kind {
@@ -31,32 +43,23 @@ async fn serve_page(extract::Path(path): extract::Path<String>) -> (StatusCode, 
                     Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, {
                         println!("500: {}", err);
                         Html("<h1>Error 500</h1><p>Tell Toast</p>".to_owned())
-                    })
+                    }),
                 }
-            },
+            }
             _ => (StatusCode::INTERNAL_SERVER_ERROR, {
                 println!("500: {}", err);
                 Html("<h1>Error 500</h1><p>Tell Toast</p>".to_owned())
-            })
+            }),
         },
     }
-}
-
-async fn serve_home() -> impl IntoResponse {
-    serve_page(extract::Path("index".to_string())).await
-}
-
-async fn serve_favicon() -> impl IntoResponse {
-    Redirect::to("/static/favicon.ico")
 }
 
 #[tokio::main]
 async fn main() {
     let app = Router::new()
-        .route("/", get(serve_home))
-        .route("/favicon.ico", get(serve_favicon))
+        .route_service("/favicon.ico", ServeFile::new("static/favicon.ico"))
         .nest_service("/static", ServeDir::new("static"))
-        .route("/*path", get(serve_page));
+        .fallback(serve_page);
 
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
         .serve(app.into_make_service())
