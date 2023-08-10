@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+axum = "0.6.20"
 lazy_static = "1.4.0"
 pulldown-cmark = "0.9.3"
-rocket = { version = "0.5.0-rc.3", features = ["json"] }
-rocket_dyn_templates = { version = "0.1.0-rc.2", features = ["tera"] }
+tera = "1.19.0"
+tokio = { version = "1.30.0", features = ["macros", "rt", "rt-multi-thread"] }
+tower-http = { version = "0.4.3", features = ["fs"] }

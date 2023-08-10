@@ -1,16 +1,9 @@
 mod custom_filters;
 
-use std::path::PathBuf;
-
+use axum::{extract, response::{Html, IntoResponse, Redirect}, routing::get, Router, http::StatusCode};
 use lazy_static::lazy_static;
-use rocket::fs::NamedFile;
-use rocket::response::content::RawHtml;
-use rocket::response::Redirect;
-use rocket_dyn_templates::tera::Context;
-use rocket_dyn_templates::{tera::Tera, Template};
-
-#[macro_use]
-extern crate rocket;
+use tera::{Context, ErrorKind, Tera};
+use tower_http::services::ServeDir;
 
 lazy_static! {
     static ref TERA: Tera = {
@@ -26,41 +19,47 @@ lazy_static! {
     };
 }
 
-#[get("/<file..>")]
-fn serve_page(file: std::path::PathBuf) -> Option<RawHtml<String>> {
-    let template_name = format!("{}.html", file.display());
+async fn serve_page(extract::Path(path): extract::Path<String>) -> (StatusCode, Html<String>) {
+    let template_name = format!("{}.html", path);
     match TERA.render(&template_name, &Context::new()) {
-        Ok(html) => Some(RawHtml(html)),
-        Err(e) => {
-            println!("Error retrieving '{}': {}", template_name, e);
-            None
-        }
+        Ok(html) => (StatusCode::OK, Html(html)),
+        Err(err) => match err.kind {
+            ErrorKind::TemplateNotFound(_) => {
+                let not_found = TERA.render("404.html", &Context::new());
+                match not_found {
+                    Ok(content) => (StatusCode::NOT_FOUND, Html(content)),
+                    Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, {
+                        println!("500: {}", err);
+                        Html("<h1>Error 500</h1><p>Tell Toast</p>".to_owned())
+                    })
+                }
+            },
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, {
+                println!("500: {}", err);
+                Html("<h1>Error 500</h1><p>Tell Toast</p>".to_owned())
+            })
+        },
     }
 }
 
-#[get("/static/<file..>")]
-async fn serve_static(file: std::path::PathBuf) -> Option<NamedFile> {
-    let file_path = format!("./static/{}", file.display());
-    NamedFile::open(file_path).await.ok()
+async fn serve_home() -> impl IntoResponse {
+    serve_page(extract::Path("index".to_string())).await
 }
 
-#[get("/")]
-async fn serve_home() -> Option<RawHtml<String>> {
-    serve_page(PathBuf::from("index"))
+async fn serve_favicon() -> impl IntoResponse {
+    Redirect::to("/static/favicon.ico")
 }
 
-#[catch(404)]
-fn catch_404() -> Redirect {
-    Redirect::to("/404")
-}
+#[tokio::main]
+async fn main() {
+    let app = Router::new()
+        .route("/", get(serve_home))
+        .route("/favicon.ico", get(serve_favicon))
+        .nest_service("/static", ServeDir::new("static"))
+        .route("/*path", get(serve_page));
 
-#[rocket::main]
-async fn main() -> Result<(), rocket::Error> {
-    rocket::build()
-        .mount("/", routes![serve_static, serve_page, serve_home])
-        .register("/", catchers![catch_404])
-        .attach(Template::fairing())
-        .launch()
-        .await?;
-    Ok(())
+    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
