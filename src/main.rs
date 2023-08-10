@@ -27,7 +27,7 @@ fn uri_to_template_name(uri: Uri) -> String {
     let path = uri.path();
     match path {
         "" | "/" => "index.html".to_owned(),
-        _ => format!("{}.html", path.strip_prefix("/").unwrap_or(path)).to_owned()
+        _ => format!("{}.html", path.strip_prefix('/').unwrap_or(path)).to_owned(),
     }
 }
 
