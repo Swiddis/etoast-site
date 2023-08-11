@@ -110,8 +110,6 @@ jobs:
         with:
           push: true
           tags: swiddis/etoast-site:latest
-          cache-from: type=local,src=target=target/x86_64-unknown-linux-musl/release
-          cache-to: type=local,dest=target=target/x86_64-unknown-linux-musl/release
 
   deploy-vps:
     name: Deploy to VPS
