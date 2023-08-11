@@ -15,8 +15,8 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-check-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-          ${{ runner.os }}-cargo-check-
-          ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-check-
+            ${{ runner.os }}-cargo-
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -38,8 +38,8 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-          ${{ runner.os }}-cargo-test-
-          ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-test-
+            ${{ runner.os }}-cargo-
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -61,8 +61,8 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-fmt-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-          ${{ runner.os }}-cargo-fmt-
-          ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-fmt-
+            ${{ runner.os }}-cargo-
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -86,8 +86,8 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-          ${{ runner.os }}-cargo-clippy-
-          ${{ runner.os }}-cargo-
+            ${{ runner.os }}-cargo-clippy-
+            ${{ runner.os }}-cargo-
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
