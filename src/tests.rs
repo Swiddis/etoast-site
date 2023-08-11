@@ -23,6 +23,14 @@ fn test_favicon() {
 }
 
 #[test]
+fn test_404() {
+    let client = Client::untracked(rocket()).expect("valid rocket instance");
+    let response = client.get("/does_not_exist").dispatch();
+
+    assert_eq!(response.status(), Status::NotFound);
+}
+
+#[test]
 fn test_statics() {
     let client = Client::untracked(rocket()).expect("valid rocket instance");
 

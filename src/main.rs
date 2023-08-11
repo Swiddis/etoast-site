@@ -7,7 +7,6 @@ use std::path::PathBuf;
 use lazy_static::lazy_static;
 use rocket::fs::NamedFile;
 use rocket::response::content::RawHtml;
-use rocket::response::Redirect;
 use rocket::Build;
 use rocket_dyn_templates::tera::Context;
 use rocket_dyn_templates::{tera::Tera, Template};
@@ -30,7 +29,7 @@ lazy_static! {
 }
 
 #[get("/<file..>")]
-fn serve_page(file: std::path::PathBuf) -> Option<RawHtml<String>> {
+async fn serve_page(file: std::path::PathBuf) -> Option<RawHtml<String>> {
     let template_name = format!("{}.html", file.display());
     match TERA.render(&template_name, &Context::new()) {
         Ok(html) => Some(RawHtml(html)),
@@ -49,7 +48,7 @@ async fn serve_static(file: std::path::PathBuf) -> Option<NamedFile> {
 
 #[get("/")]
 async fn serve_home() -> Option<RawHtml<String>> {
-    serve_page(PathBuf::from("index"))
+    serve_page(PathBuf::from("index")).await
 }
 
 #[get("/favicon.ico")]
@@ -58,8 +57,8 @@ async fn serve_favicon() -> Option<NamedFile> {
 }
 
 #[catch(404)]
-fn catch_404() -> Redirect {
-    Redirect::to("/404")
+async fn catch_404() -> Option<RawHtml<String>> {
+    serve_page(PathBuf::from("404")).await
 }
 
 fn rocket() -> rocket::Rocket<Build> {
