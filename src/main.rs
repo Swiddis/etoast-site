@@ -1,4 +1,6 @@
 mod custom_filters;
+#[cfg(test)]
+mod tests;
 
 use std::path::PathBuf;
 
@@ -6,6 +8,7 @@ use lazy_static::lazy_static;
 use rocket::fs::NamedFile;
 use rocket::response::content::RawHtml;
 use rocket::response::Redirect;
+use rocket::Build;
 use rocket_dyn_templates::tera::Context;
 use rocket_dyn_templates::{tera::Tera, Template};
 
@@ -49,18 +52,28 @@ async fn serve_home() -> Option<RawHtml<String>> {
     serve_page(PathBuf::from("index"))
 }
 
+#[get("/favicon.ico")]
+async fn serve_favicon() -> Option<NamedFile> {
+    serve_static(PathBuf::from("/favicon.ico")).await
+}
+
 #[catch(404)]
 fn catch_404() -> Redirect {
     Redirect::to("/404")
 }
 
-#[rocket::main]
-async fn main() -> Result<(), rocket::Error> {
+fn rocket() -> rocket::Rocket<Build> {
     rocket::build()
-        .mount("/", routes![serve_static, serve_page, serve_home])
+        .mount(
+            "/",
+            routes![serve_home, serve_favicon, serve_static, serve_page],
+        )
         .register("/", catchers![catch_404])
         .attach(Template::fairing())
-        .launch()
-        .await?;
+}
+
+#[rocket::main]
+async fn main() -> Result<(), rocket::Error> {
+    rocket().launch().await?;
     Ok(())
 }
