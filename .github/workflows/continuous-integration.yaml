@@ -26,7 +26,6 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
-    needs: check
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -47,7 +46,6 @@ jobs:
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
-    needs: check
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -70,7 +68,6 @@ jobs:
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
-    needs: check
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -93,7 +90,7 @@ jobs:
   deploy-docker:
     name: Push to DockerHub
     if: ${{ github.ref == 'refs/heads/main' }}
-    needs: test
+    needs: [check, test]
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU
