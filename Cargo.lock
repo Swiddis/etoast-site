@@ -359,6 +359,7 @@ dependencies = [
  "pulldown-cmark",
  "rocket",
  "rocket_dyn_templates",
+ "walkdir",
 ]
 
 [[package]]
