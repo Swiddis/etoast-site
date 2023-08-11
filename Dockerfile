@@ -1,4 +1,4 @@
-FROM rust:1.68 AS builder
+FROM rust:1 AS builder
 WORKDIR /usr/src/etoast
 RUN rustup target add x86_64-unknown-linux-musl
 
@@ -8,6 +8,7 @@ RUN mkdir ./src && echo "fn main() {}" > ./src/main.rs
 COPY Cargo.toml Cargo.lock ./
 RUN cargo fetch --target x86_64-unknown-linux-musl
 RUN rm ./src/*.rs
+
 COPY src ./src
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
