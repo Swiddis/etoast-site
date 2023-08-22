@@ -1,15 +1,15 @@
 package main
 
 import (
-	"log"
-	"os"
+	"github.com/gofiber/fiber/v2"
 )
 
 func main() {
-	content, err := os.ReadFile("content/content.txt")
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
+	app := fiber.New()
 
-	log.Printf("%s", string(content))
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendFile("content/content.txt")
+	})
+
+	app.Listen(":3000")
 }
