@@ -10,7 +10,10 @@ func main() {
 	app := fiber.New()
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendFile("content/content.html")
+		return c.SendFile("content/index.html")
+	})
+	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
+		return c.SendFile("static/favicon.ico", true)
 	})
 	app.Get("/static/style.css", func(c *fiber.Ctx) error {
 		return c.SendFile("static/style.css", true)
