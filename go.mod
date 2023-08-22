@@ -4,6 +4,8 @@ go 1.21.0
 
 require github.com/gofiber/fiber/v2 v2.48.0 // direct
 
+require github.com/aymerick/raymond v2.0.2+incompatible
+
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -16,4 +18,5 @@ require (
 	github.com/valyala/fasthttp v1.48.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
