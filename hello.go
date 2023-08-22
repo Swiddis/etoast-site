@@ -12,6 +12,9 @@ func main() {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendFile("content/content.html")
 	})
+	app.Get("/static/style.css", func(c *fiber.Ctx) error {
+		return c.SendFile("static/style.css", true)
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
