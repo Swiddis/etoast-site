@@ -20,7 +20,7 @@ func renderTemplate(name string) (string, error) {
 	}
 	result, err := raymond.Render(template, ctx)
 	if err != nil {
-		return string(template), err
+		return template, err
 	}
 
 	return result, nil
