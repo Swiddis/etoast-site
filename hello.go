@@ -15,7 +15,7 @@ func main() {
 	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
 		return c.SendFile("static/favicon.ico", true)
 	})
-	app.Get("/static/style.css", func(c *fiber.Ctx) error {
+	app.Get("/style.css", func(c *fiber.Ctx) error {
 		return c.SendFile("static/style.css", true)
 	})
 
