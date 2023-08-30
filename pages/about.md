@@ -1,8 +1,8 @@
-{% extends "index.html" %}
-{% block title %}About Me{% endblock title %}
-{% block content %}
-{% filter markdown %}
-# About Me
+---
+layout: base.njk
+title: About Me
+---
+# {{ title }}
 
 Hi, I'm ExaltedToast,
 and I'm a distributed systems engineer.
@@ -77,5 +77,3 @@ Don't go looking, please.
 
 * [GitHub](https://github.com/Swiddis)
 * [LinkedIn](https://www.linkedin.com/in/simeon-widdis/)
-{% endfilter %}
-{% endblock content %}

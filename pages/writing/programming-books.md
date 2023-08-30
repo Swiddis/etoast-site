@@ -1,7 +1,7 @@
-{% extends "index.html" %}
-{% block title %}Progamming Books{% endblock title %}
-{% block content %}
-{% filter markdown %}
+---
+layout: base.njk
+title: Programming Books
+---
 # Five(ish) Books For All Programmers
 
 August 13, 2022
@@ -87,6 +87,3 @@ The answer for that I think is "The most commonly recommended book in your field
 I used to suggest *Clean Code* for beginners at the end,
 but nowadays I don't stand by that anymore.
 The suggestion has been updated.
-
-{% endfilter %}
-{% endblock content %}

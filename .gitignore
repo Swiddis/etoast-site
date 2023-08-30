@@ -1,1 +1,5 @@
-target/
+# Node
+node_modules
+
+# Static site outputs
+dist
