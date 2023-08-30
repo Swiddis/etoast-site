@@ -40,12 +40,9 @@ May as well make a website with it.
 
 ### How did you make it?
 
-The pages are markdown documents,
-thrown in a [Tera](https://tera.netlify.app/) template.
-The web server is written in Rust,
-using the [Rocket Framework](https://rocket.rs/).
-Deployment is done through [Docker](https://www.docker.com/)
-with some additional routing by [Nginx](http://nginx.org/).
+Static sites are generated with [Eleventy](https://www.11ty.dev/),
+and served with [Nginx](https://www.nginx.com/).
+You can read the source code on the [Git Repo](https://github.com/Swiddis/etoast-site).
 
 ---
 
