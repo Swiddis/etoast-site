@@ -2,7 +2,7 @@
 layout: base.njk
 title: Welcome
 ---
-# Welcome
+# {{ title }}
 
 This is a website for my diatribes on things.
 It's not updated very actively, but nonetheless it's mine.

@@ -3,4 +3,10 @@ module.exports = function (eleventyConfig) {
     static: "static",
     "static/favicon.ico": "favicon.ico",
   });
+  return {
+    dir: {
+      input: "pages",
+      output: "dist",
+    },
+  };
 };

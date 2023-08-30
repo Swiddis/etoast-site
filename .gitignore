@@ -1,5 +1,5 @@
 # Node
 node_modules
 
-# 11ty outputs
-_site
+# Static site outputs
+dist
