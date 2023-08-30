@@ -37,5 +37,5 @@ jobs:
           passphrase: ${{ secrets.VPS_PASSPHRASE }}
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           script: |
-            docker compose pull rocket
-            docker compose up rocket --detach
+            docker compose pull website
+            docker compose up website --detach
