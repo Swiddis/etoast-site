@@ -67,10 +67,7 @@ see the `Learning` section.
 
 ## Socials
 
-Finally, here's some more socials.
-The rest of my personal social media is private.
-This is intentional.
-Don't go looking, please.
-
-* [GitHub](https://github.com/Swiddis)
-* [LinkedIn](https://www.linkedin.com/in/simeon-widdis/)
+I'm not really a fan of social media,
+and I'd rather keep this fairly flexible and unprofessional.
+As such, all I'll really link here is [GitHub](https://github.com/Swiddis),
+though if you really care you can probably find my LinkedIn and guess my Discord.
