@@ -4,6 +4,8 @@ title: Programming Books
 ---
 # Programming is Writing
 
+January 6, 2024
+
 At my workplace, there are articles published regularly on an internal news board sharing what's going on around the company. Most of it is laudatory presentation of company milestones, advice of varying quality, or interviews with influential employees. Sometimes there's the occasional letter from senior leadership about some new policy. Usually, I only click through them when I'm procrastinating something.
 
 Recently, I landed on an article by one of the company's top technical writers, Mark Sillup, regarding writer's block. Most of it was advice that you could find elsewhere online; the points about setting a consistent schedule, taking breaks, and occasionally just doing what it takes to get something on paper, are also found in [Stacy Lu's article with the APA on writer's block](https://www.apa.org/gradpsych/2015/11/writers-block). But there's one point that did stand out, and at the risk of breaking company confidentiality, I'll share it: "Be a technician, not an artist." Sillup spends a few sections of this article explaining that trying too hard to be eloquent can lead you to get in the way of yourself. Instead he advocates a more utilitarian "just get it down" approach, but what stuck out to me was the line's assertion that technical writing wasn't art.
