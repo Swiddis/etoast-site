@@ -1,6 +1,6 @@
 ---
 layout: base.njk
-title: Programming Books
+title: Programming is Writing
 ---
 # Programming is Writing
 
