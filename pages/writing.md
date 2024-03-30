@@ -20,4 +20,4 @@ The documents are living, but changelogs will be maintained.
 
 ## Problem Writeups
 
-* [Descending through Arrays](/writing/descending-arrays)
+* [Descending Through Arrays and Problem Solving](/writing/descending-arrays)
