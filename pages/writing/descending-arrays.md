@@ -1,10 +1,10 @@
 ---
 layout: base.njk
-title: Descending Through Arrays
+title: Descending Through Arrays and Problem Solving
 code: true
 ---
 
-# Descending Through Arrays and Problem Solving
+# {{ title }}
 
 November 15, 2021
 

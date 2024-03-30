@@ -2,7 +2,8 @@
 layout: base.njk
 title: Writing
 ---
-# {{ Writing }}
+
+# {{ title }}
 
 This is my little writing repository for blethering about miscellanious topics.
 The documents are living, but changelogs will be maintained.

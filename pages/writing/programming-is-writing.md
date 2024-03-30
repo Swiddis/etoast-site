@@ -2,7 +2,8 @@
 layout: base.njk
 title: Programming is Writing
 ---
-# Programming is Writing
+
+# {{ title }}
 
 January 6, 2024
 

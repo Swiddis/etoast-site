@@ -2,7 +2,8 @@
 layout: base.njk
 title: Programming Books
 ---
-# Five(ish) Books For All Programmers
+
+# {{ title }}
 
 August 13, 2022
 
