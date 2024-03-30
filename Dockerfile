@@ -2,11 +2,15 @@ FROM node:lts AS builder
 
 WORKDIR /app
 
+COPY package.json package.json
+COPY yarn.lock yarn.lock
+
 RUN yarn install \
     --prefer-offline \
     --frozen-lockfile \
     --non-interactive \
     --production=false
+
 COPY . .
 RUN yarn build
 
