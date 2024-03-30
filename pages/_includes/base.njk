@@ -8,7 +8,10 @@ title: etoast.me
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title }}</title>
-    <link rel="stylesheet" href="/simple.css">
+    <link rel="stylesheet" href="/static/simple.css">
+    {% if code %}
+        <link rel="stylesheet" href="/static/prism.css">
+    {% endif %}
 </head>
 
 <body>
