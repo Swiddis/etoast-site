@@ -16,3 +16,7 @@ The documents are living, but changelogs will be maintained.
 ## Rambling
 
 * [Programming is Writing](/writing/programming-is-writing)
+
+## Problem Writeups
+
+* [Descending through Arrays](/writing/descending-arrays)
