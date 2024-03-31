@@ -1,11 +1,12 @@
 ---
 layout: base.njk
 title: Programming Books
+author_date: August 13, 2022
 ---
 
 # {{ title }}
 
-August 13, 2022
+{{ author_date }}
 
 This one is from a friend:
 "What are five books that *all* aspiring programmers should be sure to read?"

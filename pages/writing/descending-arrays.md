@@ -1,12 +1,13 @@
 ---
 layout: base.njk
 title: Descending Through Arrays and Problem Solving
+author_date: November 15, 2021
 code: true
 ---
 
 # {{ title }}
 
-November 15, 2021
+{{ author_date }}
 
 ## A Mystery is Afoot
 

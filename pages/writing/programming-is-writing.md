@@ -1,11 +1,12 @@
 ---
 layout: base.njk
 title: Programming is Writing
+author_date: January 6, 2024
 ---
 
 # {{ title }}
 
-January 6, 2024
+{{ author_date }}
 
 At my workplace, there are articles published regularly on an internal news board sharing what's going on around the company. Most of it is laudatory presentation of company milestones, advice of varying quality, or interviews with influential employees. Sometimes there's the occasional letter from senior leadership about some new policy. Usually, I only click through them when I'm procrastinating something.
 

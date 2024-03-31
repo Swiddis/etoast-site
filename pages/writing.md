@@ -20,4 +20,6 @@ The documents are living, but changelogs will be maintained.
 
 ## Problem Writeups
 
+* [Data Mining my Favorite Game](/writing/joseki-scraping)
 * [Descending Through Arrays and Problem Solving](/writing/descending-arrays)
+* [Winning a Children's Game with Combinatorial Graph Theory](/writing/set)
