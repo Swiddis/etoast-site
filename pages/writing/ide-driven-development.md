@@ -6,6 +6,8 @@ author_date: April 26, 2024
 
 # {{ title }}
 
+{{ author_date }}
+
 *What? Another one?*
 
 There's a lot of them. [Test-Driven
