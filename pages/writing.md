@@ -16,6 +16,7 @@ The documents are living, but changelogs will be maintained.
 
 ## Rambling
 
+* [IDE-Driven Development](/writing/ide-driven-development)
 * [Programming is Writing](/writing/programming-is-writing)
 
 ## Problem Writeups

@@ -694,11 +694,14 @@ sub {
   top: 0.3em; 
 }
 
-/* Classes for notices */
 .notice {
   background: var(--accent-bg);
   border: 2px solid var(--border);
   border-radius: var(--standard-border-radius);
   padding: 1.5rem;
   margin: 2rem 0;
+}
+
+.footnotes-sep {
+  display: none;
 }
