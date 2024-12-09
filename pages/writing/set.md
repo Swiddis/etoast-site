@@ -128,8 +128,8 @@ Okay, this one isn't that bad, but the name does sound really cool. In the above
 We can directly look at the ASCII values of our characters here: `1` has an ASCII value of 49, `2` of 50, and `3` of 51. To calculate the third character given two characters, we can express this as a linear system of equations to see what function we need:
 
 $$\begin{aligned}
-49a+50b+c&=51\\
-49a+51b+c&=50\\
+49a+50b+c&=51\\\\
+49a+51b+c&=50\\\\
 50a+51b+c&=49
 \end{aligned}$$
 
