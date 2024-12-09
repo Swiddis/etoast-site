@@ -5,11 +5,11 @@ title: About Me
 
 # {{ title }}
 
-Hi, I'm ExaltedToast, and I'm a garden-variety software engineer with a penchant for
+Hi, I'm Simeon Widdis, a garden-variety software engineer with a penchant for
 algorithms. My hobby is thinking about things, such as:
 
-* Baduk
 * Code
+* [Go](https://en.wikipedia.org/wiki/Go_(game))
 * Languages
 * Literature
 * Mathematics

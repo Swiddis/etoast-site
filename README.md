@@ -1,5 +1,5 @@
-# etoast.me
+# swiddis.net
 
-> https://etoast.me/
+> https://swiddis.net/
 
 Site content in `pages` and `static`, the rest is just configs.
