@@ -1,5 +1,6 @@
 const mathjax = require("eleventy-plugin-mathjax");
 const syntaxHighlight = require("@11ty/eleventy-plugin-syntaxhighlight");
+const purgeCss = require("eleventy-plugin-purgecss");
 
 const markdownIt = require("markdown-it");
 const markdownItFootnote = require("markdown-it-footnote");
@@ -18,6 +19,10 @@ module.exports = function (eleventyConfig) {
 
   eleventyConfig.addPlugin(mathjax);
   eleventyConfig.addPlugin(syntaxHighlight);
+  eleventyConfig.addPlugin(purgeCss, {
+    config: './purgecss.config.js',
+    quiet: false,
+  });
 
   return {
     dir: {
