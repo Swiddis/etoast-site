@@ -12,7 +12,7 @@
     "post": "rsync -rv ./dist/* 'swiddis_etoast@ssh.nyc1.nearlyfreespeech.net:/home/public'"
   },
   "devDependencies": {
-    "@11ty/eleventy": "^2.0.1",
+    "@11ty/eleventy": "^3.0.0",
     "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.0",
     "eleventy-plugin-mathjax": "^2.0.4",
     "eleventy-plugin-purgecss": "^0.5.0",
