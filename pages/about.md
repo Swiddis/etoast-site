@@ -56,7 +56,6 @@ them can help you out too. I also put quite a bit of information in my writing, 
 * [The Pragmatic Programmer](https://pragprog.com/titles/tpp20/) is a book that I feel helped me transition from programmer to software engineer.
 * [Working Effectively with Legacy Code](https://www.amazon.com/Working-Effectively-Legacy-Michael-Feathers/dp/0131177052) has solidifed a solid amount of my current opinions on unit testing.
 * [Jordan has no life](https://www.youtube.com/channel/UCbvDQKzAJ5GwCjTrv4FWkxg) is a fantastic Youtube channel if you want a primer on the stuff I do for a living.
-* [How To Ask Questions The Smart Way](http://www.catb.org/~esr/faqs/smart-questions.html)
 * [How To Become A Hacker](http://www.catb.org/~esr/faqs/hacker-howto.html)
 
 ---
