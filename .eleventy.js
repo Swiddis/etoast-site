@@ -12,6 +12,12 @@ module.exports = function (eleventyConfig) {
     "static/robots.txt": "robots.txt"
   });
 
+  eleventyConfig.addCollection("writing", function (collectionApi) {
+    return collectionApi.getFilteredByGlob("pages/writing/*.md")
+      .filter(page => page.data.author_date) // Missing dates are WIP, don't show
+      .sort((a, b) => new Date(b.data.author_date) - new Date(a.data.author_date));
+  });
+
   eleventyConfig.setLibrary(
     "md",
     markdownIt({ html: true }).use(markdownItFootnote)

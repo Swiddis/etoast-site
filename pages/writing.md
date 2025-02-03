@@ -6,21 +6,12 @@ title: Writing
 # {{ title }}
 
 This is my little writing repository for blethering about miscellanious topics.
-The documents are living, but changelogs will be maintained.
+The documents are subject to receive updates, but changelogs will be maintained.
 
----
-
-## Learning
-
-* [Five(ish) Books For All Programmers](/writing/programming-books)
-
-## Rambling
-
-* [IDE-Driven Development](/writing/ide-driven-development)
-* [Programming is Writing](/writing/programming-is-writing)
-
-## Problem Writeups
-
-* [Winning a Children's Game with Combinatorial Graph Theory](/writing/set)
-* [Data Mining my Favorite Game](/writing/joseki-scraping)
-* [Descending Through Arrays and Problem Solving](/writing/descending-arrays)
+<ul>
+{% for page in collections.writing %}
+  <li>
+    <a href="{{ page.url }}">{{ page.data.title }}</a> - {{ page.data.author_date }}
+  </li>
+{% endfor %}
+</ul>
