@@ -8,7 +8,8 @@
   "license": "MIT",
   "scripts": {
     "build": "npx @11ty/eleventy",
-    "dev": "npx @11ty/eleventy --serve"
+    "dev": "npx @11ty/eleventy --serve",
+    "post": "rsync -rv ./dist/* 'swiddis_etoast@ssh.nyc1.nearlyfreespeech.net:/home/public'"
   },
   "devDependencies": {
     "@11ty/eleventy": "^2.0.1",
