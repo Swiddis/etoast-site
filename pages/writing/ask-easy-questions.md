@@ -4,7 +4,6 @@ title: Ask Easy Questions
 author_date: February 2, 2025
 tags:
   - blog
-code: true
 ---
 
 # {{ title }}
