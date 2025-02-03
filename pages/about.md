@@ -37,9 +37,10 @@ with it. A lot of my friends are doing it!
 
 ### How did you make it?
 
-Static sites are generated with [Eleventy](https://www.11ty.dev/), and served with
-[Nginx](https://www.nginx.com/). You can read the source code on the [Git
-Repo](https://github.com/Swiddis/etoast-site).
+Static sites are generated with [Eleventy](https://www.11ty.dev/). Historically
+I served it on a VPS, but I've since moved to
+[NearlyFreeSpeech](https://www.nearlyfreespeech.net/). You can read the source
+code on the [Git Repo](https://github.com/Swiddis/etoast-site).
 
 ---
 
