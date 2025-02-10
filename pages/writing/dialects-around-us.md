@@ -104,9 +104,9 @@ same problem.
 > going on the same patterns are not very illuminating; they are often even
 > misleading. The language is not alive except to those who use it.
 
-Thurston calls these subfield-specific patterns "mental infrastructure," an
-idiom that I've found valuable to incorporate into my own vocabulary. Accounting
-for mental infrastructure turns out to be important when introducing ideas to
+Thurston calls these subfield-specific patterns "mental infrastructure," a term
+that I've found valuable to incorporate into my own vocabulary. Accounting for
+mental infrastructure turns out to be important when introducing ideas to
 others, and having a term for the phenomenon has helped me to identify cases
 where context or a definition may be necessary. It's why I'm a big fan of
 putting glossaries in my documents, and why it feels like a lot of my writing
