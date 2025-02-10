@@ -601,11 +601,14 @@ blockquote {
   padding: 0.4rem 0.8rem;
   border-inline-start: 0.35rem solid var(--accent);
   color: var(--text-light);
-  font-style: italic;
 }
 
-blockquote > p > em {
-  font-style: normal;
+blockquote > p:first-child {
+  margin-top: 0.3rem;
+}
+
+blockquote > p:last-child {
+  margin-bottom: 0.3rem;
 }
 
 cite {
