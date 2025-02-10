@@ -9,7 +9,7 @@
   "scripts": {
     "build": "npx @11ty/eleventy",
     "dev": "npx @11ty/eleventy --serve",
-    "post": "rsync -rv ./dist/* 'swiddis_etoast@ssh.nyc1.nearlyfreespeech.net:/home/public'"
+    "post": "rsync -rvu ./dist/* 'swiddis_etoast@ssh.nyc1.nearlyfreespeech.net:/home/public'"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
