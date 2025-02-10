@@ -1,6 +1,7 @@
 ---
 layout: base.njk
 title: The Dialects Around Us
+summary: Communication relies on implicit shared context. It helps to learn to identify this context.
 author_date: February 9, 2025
 tags:
   - blog

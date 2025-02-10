@@ -12,6 +12,10 @@ title: swiddis.net
     {% if code %}
         <link rel="stylesheet" href="/static/prism.css">
     {% endif %}
+    <meta property="og:title" content="{{ title }}" />
+    {% if summary %}
+    <meta property="og:description" content="{{ summary }}">
+    {% endif %}
 </head>
 
 <body>
