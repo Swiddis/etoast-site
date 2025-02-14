@@ -31,7 +31,7 @@ First thing's first: Cloc isn't parallel by default, you need to pass
 and Tokei with `RAYON_NUM_THREADS=4`. It turns out this doesn't help Cloc much
 if at all (output from Fish's `time`):
 
-```bash
+```
 $ time RAYON_NUM_THREADS=4 tokei ~/code/OpenSearch/
 # ...
 ________________________________________________________
