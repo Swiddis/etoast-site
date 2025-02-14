@@ -1,0 +1,707 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="210" onload="init(evt)" viewBox="0 0 1200 210">
+  <defs>
+    <linearGradient id="background" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="5%" stop-color="#eee"/>
+      <stop offset="95%" stop-color="#eeeeb0"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .func_g:hover{stroke:#000;stroke-width:.5;cursor:pointer}
+  </style>
+  <script type="text/ecmascript">
+    <![CDATA[
+	var details, svg;
+	function init(evt) { 
+		details = document.getElementById("details").firstChild; 
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+	}
+
+	// mouse-over for info
+	function s(info) { details.nodeValue = "sub " + info; }
+	function c() { details.nodeValue = ' '; }
+
+	// functions
+	function find_child(parent, name, attr) {
+		var children = parent.childNodes;
+		for (var i=0; i<children.length;i++) {
+			if (children[i].tagName == name)
+				return (attr != undefined) ? children[i].attributes[attr].value : children[i];
+		}
+		return;
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_"+attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_"+attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_"+attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes["width"].value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)/,"");
+		t.attributes["x"].value = parseFloat(r.attributes["x"].value) +3;
+		
+		// Smaller than this size won't fit anything
+		if (w < 2*12*0.59) {
+			t.textContent = "";
+			return;
+		}
+		
+		t.textContent = txt;
+		// Fit in full text width
+		if (/^ *$/.test(txt) || t.getSubStringLength(0, txt.length) < w)
+			return;
+		
+		for (var x=txt.length-2; x>0; x--) {
+			if (t.getSubStringLength(0, x+2) <= w) { 
+				t.textContent = txt.substring(0,x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes["x"] != undefined) {
+				orig_save(e, "x");
+				e.attributes["x"].value = (parseFloat(e.attributes["x"].value) - x - 10) * ratio + 10;
+				if(e.tagName == "text") e.attributes["x"].value = find_child(e.parentNode, "rect", "x") + 3;
+			}
+			if (e.attributes["width"] != undefined) {
+				orig_save(e, "width");
+				e.attributes["width"].value = parseFloat(e.attributes["width"].value) * ratio;
+			}
+		}
+		
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_child(c[i], x-10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes["x"] != undefined) {
+				orig_save(e, "x");
+				e.attributes["x"].value = 10;
+			}
+			if (e.attributes["width"] != undefined) {
+				orig_save(e, "width");
+				e.attributes["width"].value = parseInt(svg.width.baseVal.value) - (10*2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for(var i=0, c=e.childNodes; i<c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) { 
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr["width"].value);
+		var xmin = parseFloat(attr["x"].value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr["y"].value);
+		var ratio = (svg.width.baseVal.value - 2*10) / width;
+		
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+		
+		var unzoombtn = document.getElementById("unzoom");
+		unzoombtn.style["opacity"] = "1.0";
+		
+		var el = document.getElementsByTagName("g");
+		for(var i=0;i<el.length;i++){
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a["x"].value);
+			var ew = parseFloat(a["width"].value);
+			// Is it an ancestor
+			if (0 == 0) {
+				var upstack = parseFloat(a["y"].value) > ymin;
+			} else {
+				var upstack = parseFloat(a["y"].value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.style["opacity"] = "0.5";
+					zoom_parent(e);
+					e.onclick = function(e){unzoom(); zoom(this);};
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.style["display"] = "none";
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.style["display"] = "none";
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					e.onclick = function(e){zoom(this);};
+					update_text(e);
+				}
+			}
+		}
+	}
+	function unzoom() {
+		var unzoombtn = document.getElementById("unzoom");
+		unzoombtn.style["opacity"] = "0.0";
+		
+		var el = document.getElementsByTagName("g");
+		for(i=0;i<el.length;i++) {
+			el[i].style["display"] = "block";
+			el[i].style["opacity"] = "1";
+			zoom_reset(el[i]);
+			update_text(el[i]);
+		}
+	}	
+
+	// search
+	function reset_search() {
+		var el = document.getElementsByTagName("rect");
+		for (var i=0; i < el.length; i++){
+			orig_load(el[i], "fill")
+		}
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)", "");
+			if (term != null) {
+				search(term)
+			}
+		} else {
+			reset_search();
+			searching = 0;
+			var searchbtn = document.getElementById("search");
+			searchbtn.style["opacity"] = "0.1";
+			searchbtn.firstChild.nodeValue = "Search"
+		}
+	}
+	function search(term) {
+		var re = new RegExp(term);
+		var el = document.getElementsByTagName("g");
+		for (var i=0; i < el.length; i++){
+			var e = el[i];
+			if (e.attributes["class"].value == "func_g") {
+				// Scrape the function name from the onmouseover
+				// callback text. This is a little dirty.
+				var func = e.attributes["onmouseover"].value;
+				if (func != null) {
+					func = func.substr(3);
+					func = func.replace(/ .*/, "");
+					var r = find_child(e, "rect");
+					if (r == null) {
+						// the rect might be wrapped in an anchor
+						// if nameattr href is being used
+						if (r = find_child(e, "a")) {
+						    r = find_child(r, "rect");
+						}
+					}
+				}
+				if (func != null && r != null &&
+				    func.match(re)) {
+					orig_save(r, "fill");
+					r.attributes["fill"].value =
+					    "rgb(230,0,230)";
+					searching = 1;
+				}
+			}
+		}
+		if (searching) {
+			var searchbtn = document.getElementById("search");
+			searchbtn.style["opacity"] = "1.0";
+			searchbtn.firstChild.nodeValue = "Reset Search"
+		}
+	}
+	function searchover(e) {
+		var searchbtn = document.getElementById("search");
+		searchbtn.style["opacity"] = "1.0";
+	}
+	function searchout(e) {
+		var searchbtn = document.getElementById("search");
+		if (searching) {
+			searchbtn.style["opacity"] = "1.0";
+		} else {
+			searchbtn.style["opacity"] = "0.1";
+		}
+	}
+]]>
+  </script>
+  <path fill="url(#background)" d="M0 0h1200v210H0z"/>
+  <text x="600" y="24" font-family="Verdana" font-size="17" text-anchor="middle">Flame Graph</text>
+  <text id="details" x="10" y="193" fill="#000" font-family="Verdana" font-size="12"> </text>
+  <text id="search" x="1090" y="24" fill="#000" cursor="pointer" font-family="Verdana" font-size="12" onclick="search_prompt()" onmouseout="searchout()" onmouseover="searchover()" opacity=".1">Search</text>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:ftsize (378,188 microseconds, 0.25%)')" target="_top">
+    <rect width="3" height="15" x="833.1" y="49" fill="#F5532C" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::fileparse (64,478 microseconds, 0.04%)')" target="_top">
+    <rect width=".5" height="15" x="1168.6" y="81" fill="#F3C72A" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:subst (576,639 microseconds, 0.38%)')" target="_top">
+    <rect width="4.5" height="15" x="238.3" y="81" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::apply_ignores (291,659 microseconds, 0.19%)')" target="_top">
+    <rect width="2.3" height="15" x="21.3" y="113" fill="#EF5326" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::CORE:close (239,803 microseconds, 0.16%)')" target="_top">
+    <rect width="1.9" height="15" x="1163.9" y="97" fill="#F5A32C" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::CORE:lstat (4,123,431 microseconds, 2.73%)')" target="_top">
+    <rect width="32.3" height="15" x="773.3" y="81" fill="#E5C71A" rx="2" ry="2"/>
+    <text x="776.32" y="91.5" font-family="Verdana" font-size="12">Fi..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:match (532,748 microseconds, 0.35%)')" target="_top">
+    <rect width="4.2" height="15" x="180.2" y="81" fill="#F25329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::close (228,406 microseconds, 0.15%)')" target="_top">
+    <rect width="1.8" height="15" x="109" y="97" fill="#F5A32C" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:sort (130,907 microseconds, 0.09%)')" target="_top">
+    <rect width="1" height="15" x="10.5" y="145" fill="#EE5324" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:subst (226,999 microseconds, 0.15%)')" target="_top">
+    <rect width="1.8" height="15" x="125.1" y="97" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:match (956,583 microseconds, 0.63%)')" target="_top">
+    <rect width="7.5" height="15" x="431.7" y="81" fill="#F25329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::basename (333,629 microseconds, 0.22%)')" target="_top">
+    <rect width="2.6" height="15" x="1166.5" y="97" fill="#F1C728" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Regexp::Common::Entry::__ANON__[/var/folders/00/7q9_c55j71l37nq4z9yybq380000gr/T/M13GPjLyYM/Regexp/Common.pm:259] (104,250 microseconds, 0.07%)')" target="_top">
+    <rect width=".8" height="15" x="234.3" y="65" fill="#F4B52A" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Regexp::Common::CORE:regcomp (41,333 microseconds, 0.03%)')" target="_top">
+    <rect width=".4" height="15" x="237.3" y="49" fill="#EEB524" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Symbol::gensym (58,996 microseconds, 0.04%)')" target="_top">
+    <rect width=".4" height="15" x="134.1" y="49" fill="#EACA20" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::_is_root (16,609 microseconds, 0.01%)')" target="_top">
+    <rect width=".2" height="15" x="822.6" y="81" fill="#F1C727" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::new (101,913 microseconds, 0.07%)')" target="_top">
+    <rect width=".8" height="15" x="133.7" y="65" fill="#EBA321" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::CORE:open_dir (509,983 microseconds, 0.34%)')" target="_top">
+    <rect width="4" height="15" x="805.9" y="81" fill="#EEC725" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::CORE:match (29,432 microseconds, 0.02%)')" target="_top">
+    <rect width=".2" height="15" x="1121.1" y="81" fill="#F2C729" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:sort (18,495 microseconds, 0.01%)')" target="_top">
+    <rect width=".2" height="15" x="1107.3" y="129" fill="#EE5324" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::open (390,007 microseconds, 0.26%)')" target="_top">
+    <rect width="3.1" height="15" x="1127.9" y="49" fill="#FAA331" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:match (137,696 microseconds, 0.09%)')" target="_top">
+    <rect width="1.1" height="15" x="232.7" y="81" fill="#F25329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Regexp::Common::FETCH (188,980 microseconds, 0.13%)')" target="_top">
+    <rect width="1.5" height="15" x="231.2" y="81" fill="#FAB531" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::new (910,148 microseconds, 0.60%)')" target="_top">
+    <rect width="7.1" height="15" x="127.4" y="81" fill="#EBA321" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::CORE:match (14,804 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="1187.1" y="49" fill="#F2A329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::remove_matches_2re (69,758 microseconds, 0.05%)')" target="_top">
+    <rect width=".6" height="15" x="187.1" y="97" fill="#F7532E" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:fteread (14,096 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="1127.6" y="65" fill="#F15328" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::blank_regex (22,776 microseconds, 0.02%)')" target="_top">
+    <rect width=".1" height="15" x="136.6" y="97" fill="#F7532F" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::fileparse (212,014 microseconds, 0.14%)')" target="_top">
+    <rect width="1.6" height="15" x="1119.7" y="97" fill="#F3C72A" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::is_dir (205,649 microseconds, 0.14%)')" target="_top">
+    <rect width="1.6" height="15" x="1169.9" y="113" fill="#EE5325" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::CORE:regcomp (120,193 microseconds, 0.08%)')" target="_top">
+    <rect width=".9" height="15" x="821.7" y="81" fill="#EEC724" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:ftdir (172,712 microseconds, 0.11%)')" target="_top">
+    <rect width="1.4" height="15" x="1170.1" y="97" fill="#EE5325" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:readline (391,016 microseconds, 0.26%)')" target="_top">
+    <rect width="3.1" height="15" x="1124.5" y="81" fill="#F6532E" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:ftdir (301,520 microseconds, 0.20%)')" target="_top">
+    <rect width="2.4" height="15" x="1102" y="49" fill="#EE5325" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::remove_duplicate_files (7,226,761 microseconds, 4.79%)')" target="_top">
+    <rect width="56.5" height="15" x="1131.2" y="145" fill="#F4532B" rx="2" ry="2"/>
+    <text x="1134.21" y="155.5" font-family="Verdana" font-size="12">main:..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::Maven_or_XML (68,273 microseconds, 0.05%)')" target="_top">
+    <rect width=".6" height="15" x="1169.2" y="97" fill="#F15328" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:regcomp (132,728 microseconds, 0.09%)')" target="_top">
+    <rect width="1" height="15" x="750.2" y="81" fill="#EE5324" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::peek_at_first_line (14,303 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="1169.8" y="97" fill="#F6532E" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:stat (443,389 microseconds, 0.29%)')" target="_top">
+    <rect width="3.4" height="15" x="1107.5" y="129" fill="#E5531A" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::CORE:match (22,972 microseconds, 0.02%)')" target="_top">
+    <rect width=".2" height="15" x="133.5" y="33" fill="#F2A329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::basename (1,042,953 microseconds, 0.69%)')" target="_top">
+    <rect width="8.1" height="15" x="1113.2" y="113" fill="#F1C728" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::CORE:readdir (1,511,837 microseconds, 1.00%)')" target="_top">
+    <rect width="11.8" height="15" x="809.9" y="81" fill="#EEC725" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:subst (239,163 microseconds, 0.16%)')" target="_top">
+    <rect width="1.8" height="15" x="717.9" y="81" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:ftbinary (33,318,999 microseconds, 22.07%)')" target="_top">
+    <rect width="260.4" height="15" x="839.5" y="49" fill="#F8532F" rx="2" ry="2"/>
+    <text x="842.48" y="59.5" font-family="Verdana" font-size="12">main::CORE:ftbinary</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:subst (262,131 microseconds, 0.17%)')" target="_top">
+    <rect width="2.1" height="15" x="439.2" y="81" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::CORE:subst (305,628 microseconds, 0.20%)')" target="_top">
+    <rect width="2.4" height="15" x="754.9" y="97" fill="#EDC723" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Symbol::gensym (36,034 microseconds, 0.02%)')" target="_top">
+    <rect width=".3" height="15" x="1187.4" y="65" fill="#EACA20" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::docstring_rm_comments (17,315,625 microseconds, 11.47%)')" target="_top">
+    <rect width="135.4" height="15" x="242.9" y="97" fill="#EE5324" rx="2" ry="2"/>
+    <text x="245.93" y="107.5" font-family="Verdana" font-size="12">main::docstring_r..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Regexp::Common::new (109,938 microseconds, 0.07%)')" target="_top">
+    <rect width=".9" height="15" x="231.8" y="65" fill="#EBB521" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:regcomp (1,110,472 microseconds, 0.74%)')" target="_top">
+    <rect width="8.6" height="15" x="586.6" y="81" fill="#EE5324" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::remove_matches (19,693,062 microseconds, 13.05%)')" target="_top">
+    <rect width="153.9" height="15" x="441.3" y="97" fill="#EE5324" rx="2" ry="2"/>
+    <text x="444.3" y="107.5" font-family="Verdana" font-size="12">main::remove_matches</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::find (44,639,494 microseconds, 29.57%)')" target="_top">
+    <rect width="349" height="15" x="758.1" y="129" fill="#F8C730" rx="2" ry="2"/>
+    <text x="761.14" y="139.5" font-family="Verdana" font-size="12">File::Find::find</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::_open_mode_string (40,103 microseconds, 0.03%)')" target="_top">
+    <rect width=".3" height="15" x="1186.9" y="65" fill="#F3A32A" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::CORE:open (553,907 microseconds, 0.37%)')" target="_top">
+    <rect width="4.4" height="15" x="128.9" y="49" fill="#FAA331" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:match (1,653,438 microseconds, 1.10%)')" target="_top">
+    <rect width="13" height="15" x="573.6" y="81" fill="#F25329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Regexp::Common::_decache (410,064 microseconds, 0.27%)')" target="_top">
+    <rect width="3.2" height="15" x="235.1" y="65" fill="#F5B52C" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::CORE:close (192,450 microseconds, 0.13%)')" target="_top">
+    <rect width="1.5" height="15" x="109.3" y="81" fill="#F5A32C" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::remove_matches (6,444,043 microseconds, 4.27%)')" target="_top">
+    <rect width="50.4" height="15" x="136.7" y="97" fill="#EE5324" rx="2" ry="2"/>
+    <text x="139.74" y="107.5" font-family="Verdana" font-size="12">main:..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::Install_Regexp_Common (13,788 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="242.8" y="81" fill="#FD5335" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::close (269,510 microseconds, 0.18%)')" target="_top">
+    <rect width="2.2" height="15" x="1163.6" y="113" fill="#F5A32C" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::CORE:match (16,402 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="758" y="97" fill="#F2C729" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::get_size (633,488 microseconds, 0.42%)')" target="_top">
+    <rect width="5" height="15" x="831.1" y="65" fill="#F5532C" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Regexp::Common::TIEHASH (25,087 microseconds, 0.02%)')" target="_top">
+    <rect width=".2" height="15" x="232.5" y="49" fill="#F1B528" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::classify_file (521,265 microseconds, 0.35%)')" target="_top">
+    <rect width="4.1" height="15" x="1165.8" y="113" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::open_file (428,003 microseconds, 0.28%)')" target="_top">
+    <rect width="3.4" height="15" x="1127.7" y="81" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::remove_matches_2re (120,816 microseconds, 0.08%)')" target="_top">
+    <rect width="1" height="15" x="595.2" y="97" fill="#F7532E" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::make_file_list (48,517,398 microseconds, 32.14%)')" target="_top">
+    <rect width="379.3" height="15" x="751.9" y="145" fill="#E8531E" rx="2" ry="2"/>
+    <text x="754.93" y="155.5" font-family="Verdana" font-size="12">main::make_file_list</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::CORE:close (52,352 microseconds, 0.03%)')" target="_top">
+    <rect width=".4" height="15" x="1124.1" y="65" fill="#F5A32C" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::is_binary (7,135,384 microseconds, 4.73%)')" target="_top">
+    <rect width="55.8" height="15" x="23.6" y="113" fill="#F8532F" rx="2" ry="2"/>
+    <text x="26.62" y="123.5" font-family="Verdana" font-size="12">main:..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:regcomp (353,428 microseconds, 0.23%)')" target="_top">
+    <rect width="2.7" height="15" x="184.4" y="81" fill="#EE5324" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:subst (90,640 microseconds, 0.06%)')" target="_top">
+    <rect width=".7" height="15" x="751.2" y="81" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::CORE:subst (195,742 microseconds, 0.13%)')" target="_top">
+    <rect width="1.5" height="15" x="1167.1" y="65" fill="#EDC723" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::_strip_trailing_sep (352,319 microseconds, 0.23%)')" target="_top">
+    <rect width="2.8" height="15" x="754.5" y="113" fill="#F4C72B" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::CORE:closedir (208,321 microseconds, 0.14%)')" target="_top">
+    <rect width="1.6" height="15" x="771.5" y="81" fill="#EEC725" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::CORE:ftdir (27,028 microseconds, 0.02%)')" target="_top">
+    <rect width=".2" height="15" x="773.1" y="81" fill="#EEC725" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::close (59,234 microseconds, 0.04%)')" target="_top">
+    <rect width=".5" height="15" x="1124" y="81" fill="#F5A32C" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::remove_between_general (47,032 microseconds, 0.03%)')" target="_top">
+    <rect width=".4" height="15" x="378.3" y="97" fill="#E35318" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::new (34,783 microseconds, 0.02%)')" target="_top">
+    <rect width=".3" height="15" x="1123.4" y="81" fill="#EBA321" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::fileparse (110,285 microseconds, 0.07%)')" target="_top">
+    <rect width=".8" height="15" x="757.3" y="113" fill="#F3C72A" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::is_dir (564,930 microseconds, 0.37%)')" target="_top">
+    <rect width="4.5" height="15" x="1099.9" y="65" fill="#EE5325" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::different_files (7,060,367 microseconds, 4.68%)')" target="_top">
+    <rect width="55.2" height="15" x="1132.5" y="129" fill="#F4532B" rx="2" ry="2"/>
+    <text x="1135.51" y="139.5" font-family="Verdana" font-size="12">main:..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::CORE:match (17,516 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="128.8" y="49" fill="#F2A329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::classify_file (2,576,302 microseconds, 1.71%)')" target="_top">
+    <rect width="20.2" height="15" x="1110.9" y="129" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::peek_at_first_line (946,448 microseconds, 0.63%)')" target="_top">
+    <rect width="7.4" height="15" x="1123.7" y="113" fill="#F6532E" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::rm_blanks (6,798,757 microseconds, 4.50%)')" target="_top">
+    <rect width="53.2" height="15" x="134.5" y="113" fill="#EC5322" rx="2" ry="2"/>
+    <text x="137.51" y="123.5" font-family="Verdana" font-size="12">main:..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::is_binary (33,752,098 microseconds, 22.36%)')" target="_top">
+    <rect width="263.8" height="15" x="836.1" y="65" fill="#F8532F" rx="2" ry="2"/>
+    <text x="839.09" y="75.5" font-family="Verdana" font-size="12">main::is_binary</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::first_line (929,193 microseconds, 0.62%)')" target="_top">
+    <rect width="7.3" height="15" x="1123.8" y="97" fill="#F6532E" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::CORE:chdir (275,389 microseconds, 0.18%)')" target="_top">
+    <rect width="2.2" height="15" x="769.3" y="81" fill="#EEC725" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::CORE:match (41,886 microseconds, 0.03%)')" target="_top">
+    <rect width=".3" height="15" x="805.6" y="81" fill="#F2C729" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:regcomp (582,136 microseconds, 0.39%)')" target="_top">
+    <rect width="4.5" height="15" x="233.8" y="81" fill="#EE5324" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::open (732,583 microseconds, 0.49%)')" target="_top">
+    <rect width="5.7" height="15" x="128" y="65" fill="#FAA331" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:ftbinary (7,061,500 microseconds, 4.68%)')" target="_top">
+    <rect width="55.2" height="15" x="24.2" y="97" fill="#F8532F" rx="2" ry="2"/>
+    <text x="27.19" y="107.5" font-family="Verdana" font-size="12">main:..</text>
+  </a>
+  <rect width="1180" height="15" x="10" y="161" fill="#FFE637" class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('all (150,945,667 microseconds, 100%)')" rx="2" ry="2"/>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:readline (1,810,565 microseconds, 1.20%)')" target="_top">
+    <rect width="14.1" height="15" x="111" y="97" fill="#F6532E" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::CORE:open (358,221 microseconds, 0.24%)')" target="_top">
+    <rect width="2.8" height="15" x="1128.1" y="33" fill="#FAA331" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Digest::MD5::hexdigest (14,555 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="1163.4" y="113" fill="#EB7121" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::read_file (7,050,354 microseconds, 4.67%)')" target="_top">
+    <rect width="55.1" height="15" x="79.4" y="113" fill="#ED5323" rx="2" ry="2"/>
+    <text x="82.4" y="123.5" font-family="Verdana" font-size="12">main:..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:prtf (22,431 microseconds, 0.01%)')" target="_top">
+    <rect width=".2" height="15" x="1107.1" y="129" fill="#F05327" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::_find_dir (44,639,390 microseconds, 29.57%)')" target="_top">
+    <rect width="349" height="15" x="758.1" y="97" fill="#EEC725" rx="2" ry="2"/>
+    <text x="761.14" y="107.5" font-family="Verdana" font-size="12">File::Find::_find_dir</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::files (36,027,093 microseconds, 23.87%)')" target="_top">
+    <rect width="281.6" height="15" x="822.8" y="81" fill="#F4532B" rx="2" ry="2"/>
+    <text x="825.76" y="91.5" font-family="Verdana" font-size="12">main::files</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::new (2,027,599 microseconds, 1.34%)')" target="_top">
+    <rect width="15.8" height="15" x="1171.9" y="97" fill="#EBA321" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:regcomp (1,565,894 microseconds, 1.04%)')" target="_top">
+    <rect width="12.3" height="15" x="705.6" y="81" fill="#EE5324" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::CORE:open (1,736,491 microseconds, 1.15%)')" target="_top">
+    <rect width="13.6" height="15" x="1173.3" y="65" fill="#FAA331" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:match (50,410 microseconds, 0.03%)')" target="_top">
+    <rect width=".4" height="15" x="1106.7" y="65" fill="#F25329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::_strip_trailing_sep (224,730 microseconds, 0.15%)')" target="_top">
+    <rect width="1.7" height="15" x="1166.9" y="81" fill="#F4C72B" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::CORE:subst (601,463 microseconds, 0.40%)')" target="_top">
+    <rect width="4.7" height="15" x="1115" y="81" fill="#EDC723" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::open_file (975,593 microseconds, 0.65%)')" target="_top">
+    <rect width="7.6" height="15" x="126.9" y="97" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::new (67,366 microseconds, 0.04%)')" target="_top">
+    <rect width=".5" height="15" x="1187.2" y="81" fill="#EBA321" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Regexp::Common::Entry::_clone_with (51,843 microseconds, 0.03%)')" target="_top">
+    <rect width=".4" height="15" x="237.7" y="49" fill="#EBB521" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Regexp::Common::Entry::CORE:subst (19,002 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="234.9" y="49" fill="#EDB523" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:match (13,249,499 microseconds, 8.78%)')" target="_top">
+    <rect width="103.6" height="15" x="274.7" y="81" fill="#F25329" rx="2" ry="2"/>
+    <text x="277.72" y="91.5" font-family="Verdana" font-size="12">main::CORE:m..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::open (1,898,119 microseconds, 1.26%)')" target="_top">
+    <rect width="14.9" height="15" x="1172.3" y="81" fill="#FAA331" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::new (14,605 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="1131" y="49" fill="#EBA321" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::call_regexp_common (4,009,904 microseconds, 2.66%)')" target="_top">
+    <rect width="31.3" height="15" x="211.6" y="97" fill="#FD5335" rx="2" ry="2"/>
+    <text x="214.59" y="107.5" font-family="Verdana" font-size="12">ma..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::open_file (35,633 microseconds, 0.02%)')" target="_top">
+    <rect width=".3" height="15" x="1123.4" y="97" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::call_counter (94,541,845 microseconds, 62.63%)')" target="_top">
+    <rect width="739" height="15" x="12.9" y="129" fill="#F05326" rx="2" ry="2"/>
+    <text x="15.86" y="139.5" font-family="Verdana" font-size="12">main::call_counter</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:match (34,154 microseconds, 0.02%)')" target="_top">
+    <rect width=".3" height="15" x="1121.3" y="113" fill="#F25329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::basename (540,440 microseconds, 0.36%)')" target="_top">
+    <rect width="4.2" height="15" x="753.9" y="129" fill="#F1C728" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::new (417,703 microseconds, 0.28%)')" target="_top">
+    <rect width="3.3" height="15" x="1127.8" y="65" fill="#EBA321" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:match (15,492 microseconds, 0.01%)')" target="_top">
+    <rect width=".2" height="15" x="110.8" y="97" fill="#F25329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::remove_html_comments (7,963,239 microseconds, 5.28%)')" target="_top">
+    <rect width="62.3" height="15" x="379" y="97" fill="#EE5324" rx="2" ry="2"/>
+    <text x="382.01" y="107.5" font-family="Verdana" font-size="12">main::..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:match (1,293,482 microseconds, 0.86%)')" target="_top">
+    <rect width="10.1" height="15" x="695.5" y="81" fill="#F25329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Digest::MD5::addfile (3,672,607 microseconds, 2.43%)')" target="_top">
+    <rect width="28.7" height="15" x="1134.7" y="113" fill="#ED7123" rx="2" ry="2"/>
+    <text x="1137.73" y="123.5" font-family="Verdana" font-size="12">Di..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('Regexp::Common::get_cache (30,759 microseconds, 0.02%)')" target="_top">
+    <rect width=".2" height="15" x="238.1" y="49" fill="#F5B52C" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::lower_on_Windows (18,207 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="1131.1" y="129" fill="#EA5320" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::BEGIN@41 (16,328 microseconds, 0.01%)')" target="_top">
+    <rect width=".2" height="15" x="10.2" y="145" fill="#E35319" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::Handle::_open_mode_string (56,133 microseconds, 0.04%)')" target="_top">
+    <rect width=".4" height="15" x="133.3" y="49" fill="#F3A32A" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::replace_regex (4,116,821 microseconds, 2.73%)')" target="_top">
+    <rect width="32.2" height="15" x="719.7" y="97" fill="#F7532F" rx="2" ry="2"/>
+    <text x="722.74" y="107.5" font-family="Verdana" font-size="12">ma..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::CORE:open (29,887 microseconds, 0.02%)')" target="_top">
+    <rect width=".3" height="15" x="1123.4" y="49" fill="#FAA331" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::can_read (20,152 microseconds, 0.01%)')" target="_top">
+    <rect width=".1" height="15" x="1127.6" y="81" fill="#F15328" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:match (345,289 microseconds, 0.23%)')" target="_top">
+    <rect width="2.7" height="15" x="747.5" y="81" fill="#F25329" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::CORE:readline (73,471 microseconds, 0.05%)')" target="_top">
+    <rect width=".6" height="15" x="1122.8" y="97" fill="#F6532E" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::rm_comments (72,181,061 microseconds, 47.82%)')" target="_top">
+    <rect width="564.2" height="15" x="187.7" y="113" fill="#EE5324" rx="2" ry="2"/>
+    <text x="190.66" y="123.5" font-family="Verdana" font-size="12">main::rm_comments</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::Maven_or_XML (251,070 microseconds, 0.17%)')" target="_top">
+    <rect width="2" height="15" x="1121.7" y="113" fill="#F15328" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::open_file (2,074,699 microseconds, 1.37%)')" target="_top">
+    <rect width="16.2" height="15" x="1171.5" y="113" fill="#ED5323" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::count_files (94,717,550 microseconds, 62.75%)')" target="_top">
+    <rect width="740.4" height="15" x="11.5" y="145" fill="#F4532B" rx="2" ry="2"/>
+    <text x="14.48" y="155.5" font-family="Verdana" font-size="12">main::count_files</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Basename::_strip_trailing_sep (687,985 microseconds, 0.46%)')" target="_top">
+    <rect width="5.4" height="15" x="1114.3" y="97" fill="#F4C72B" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::replace_between_regex (15,805,087 microseconds, 10.47%)')" target="_top">
+    <rect width="123.5" height="15" x="596.2" y="97" fill="#F7532F" rx="2" ry="2"/>
+    <text x="599.19" y="107.5" font-family="Verdana" font-size="12">main::replace_b..</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::find_preprocessor (345,816 microseconds, 0.23%)')" target="_top">
+    <rect width="2.7" height="15" x="1104.4" y="81" fill="#F25328" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('File::Find::_find_opt (44,639,471 microseconds, 29.57%)')" target="_top">
+    <rect width="349" height="15" x="758.1" y="113" fill="#F0C726" rx="2" ry="2"/>
+    <text x="761.14" y="123.5" font-family="Verdana" font-size="12">File::Find::_find_opt</text>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('IO::File::open (32,396 microseconds, 0.02%)')" target="_top">
+    <rect width=".3" height="15" x="1123.4" y="65" fill="#FAA331" rx="2" ry="2"/>
+  </a>
+  <a class="func_g" onclick="zoom(this)" onmouseout="c()" onmouseover="s('main::remove_between_regex (44,641 microseconds, 0.03%)')" target="_top">
+    <rect width=".3" height="15" x="378.7" y="97" fill="#F7532F" rx="2" ry="2"/>
+  </a>
+</svg>

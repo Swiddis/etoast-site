@@ -1,0 +1,890 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:fg="http://github.com/jonhoo/inferno" width="1200" height="518" onload="init(evt)" viewBox="0 0 1200 518">
+  <defs>
+    <linearGradient id="background" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="5%" stop-color="#eee"/>
+      <stop offset="95%" stop-color="#eeeeb0"/>
+    </linearGradient>
+  </defs>
+  <style>
+    <![CDATA[text{font-family:monospace;font-size:12px}#search.show,#search:hover{opacity:1}#subtitle{text-anchor:middle;font-color:#a0a0a0}#frames>:hover{stroke:#000;stroke-width:.5;cursor:pointer}.parent{opacity:.5}]]>
+  </style>
+  <script type="text/ecmascript">
+    <![CDATA[
+        var nametype = 'Function:';
+        var fontsize = 12;
+        var fontwidth = 0.59;
+        var xpad = 10;
+        var inverted = false;
+        var searchcolor = 'rgb(230,0,230)';
+        var fluiddrawing = true;
+        var truncate_text_right = false;
+    ]]>
+    <![CDATA["use strict";
+var details, searchbtn, unzoombtn, matchedtxt, svg, searching, frames, known_font_width;
+function init(evt) {
+    details = document.getElementById("details").firstChild;
+    searchbtn = document.getElementById("search");
+    unzoombtn = document.getElementById("unzoom");
+    matchedtxt = document.getElementById("matched");
+    svg = document.getElementsByTagName("svg")[0];
+    frames = document.getElementById("frames");
+    known_font_width = get_monospace_width(frames);
+    total_samples = parseInt(frames.attributes.total_samples.value);
+    searching = 0;
+
+    // Use GET parameters to restore a flamegraph's state.
+    var restore_state = function() {
+        var params = get_params();
+        if (params.x && params.y)
+            zoom(find_group(document.querySelector('[*|x="' + params.x + '"][y="' + params.y + '"]')));
+        if (params.s)
+            search(params.s);
+    };
+
+    if (fluiddrawing) {
+        // Make width dynamic so the SVG fits its parent's width.
+        svg.removeAttribute("width");
+        // Edge requires us to have a viewBox that gets updated with size changes.
+        var isEdge = /Edge\/\d./i.test(navigator.userAgent);
+        if (!isEdge) {
+            svg.removeAttribute("viewBox");
+        }
+        var update_for_width_change = function() {
+            if (isEdge) {
+                svg.attributes.viewBox.value = "0 0 " + svg.width.baseVal.value + " " + svg.height.baseVal.value;
+            }
+
+            // Keep consistent padding on left and right of frames container.
+            frames.attributes.width.value = svg.width.baseVal.value - xpad * 2;
+
+            // Text truncation needs to be adjusted for the current width.
+            update_text_for_elements(frames.children);
+
+            // Keep search elements at a fixed distance from right edge.
+            var svgWidth = svg.width.baseVal.value;
+            searchbtn.attributes.x.value = svgWidth - xpad;
+            matchedtxt.attributes.x.value = svgWidth - xpad;
+        };
+        window.addEventListener('resize', function() {
+            update_for_width_change();
+        });
+        // This needs to be done asynchronously for Safari to work.
+        setTimeout(function() {
+            unzoom();
+            update_for_width_change();
+            restore_state();
+        }, 0);
+    } else {
+        restore_state();
+    }
+}
+// event listeners
+window.addEventListener("click", function(e) {
+    var target = find_group(e.target);
+    if (target) {
+        if (target.nodeName == "a") {
+            if (e.ctrlKey === false) return;
+            e.preventDefault();
+        }
+        if (target.classList.contains("parent")) unzoom();
+        zoom(target);
+
+        // set parameters for zoom state
+        var el = target.querySelector("rect");
+        if (el && el.attributes && el.attributes.y && el.attributes["fg:x"]) {
+            var params = get_params()
+            params.x = el.attributes["fg:x"].value;
+            params.y = el.attributes.y.value;
+            history.replaceState(null, null, parse_params(params));
+        }
+    }
+    else if (e.target.id == "unzoom") {
+        unzoom();
+
+        // remove zoom state
+        var params = get_params();
+        if (params.x) delete params.x;
+        if (params.y) delete params.y;
+        history.replaceState(null, null, parse_params(params));
+    }
+    else if (e.target.id == "search") search_prompt();
+}, false)
+// mouse-over for info
+// show
+window.addEventListener("mouseover", function(e) {
+    var target = find_group(e.target);
+    if (target) details.nodeValue = nametype + " " + g_to_text(target);
+}, false)
+// clear
+window.addEventListener("mouseout", function(e) {
+    var target = find_group(e.target);
+    if (target) details.nodeValue = ' ';
+}, false)
+// ctrl-F for search
+window.addEventListener("keydown",function (e) {
+    if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+        e.preventDefault();
+        search_prompt();
+    }
+}, false)
+// functions
+function get_params() {
+    var params = {};
+    var paramsarr = window.location.search.substr(1).split('&');
+    for (var i = 0; i < paramsarr.length; ++i) {
+        var tmp = paramsarr[i].split("=");
+        if (!tmp[0] || !tmp[1]) continue;
+        params[tmp[0]]  = decodeURIComponent(tmp[1]);
+    }
+    return params;
+}
+function parse_params(params) {
+    var uri = "?";
+    for (var key in params) {
+        uri += key + '=' + encodeURIComponent(params[key]) + '&';
+    }
+    if (uri.slice(-1) == "&")
+        uri = uri.substring(0, uri.length - 1);
+    if (uri == '?')
+        uri = window.location.href.split('?')[0];
+    return uri;
+}
+function find_child(node, selector) {
+    var children = node.querySelectorAll(selector);
+    if (children.length) return children[0];
+    return;
+}
+function find_group(node) {
+    var parent = node.parentElement;
+    if (!parent) return;
+    if (parent.id == "frames") return node;
+    return find_group(parent);
+}
+function orig_save(e, attr, val) {
+    if (e.attributes["fg:orig_" + attr] != undefined) return;
+    if (e.attributes[attr] == undefined) return;
+    if (val == undefined) val = e.attributes[attr].value;
+    e.setAttribute("fg:orig_" + attr, val);
+}
+function orig_load(e, attr) {
+    if (e.attributes["fg:orig_"+attr] == undefined) return;
+    e.attributes[attr].value = e.attributes["fg:orig_" + attr].value;
+    e.removeAttribute("fg:orig_" + attr);
+}
+function g_to_text(e) {
+    var text = find_child(e, "title").firstChild.nodeValue;
+    return (text)
+}
+function g_to_func(e) {
+    var func = g_to_text(e);
+    // if there's any manipulation we want to do to the function
+    // name before it's searched, do it here before returning.
+    return (func);
+}
+function get_monospace_width(frames) {
+    // Given the id="frames" element, return the width of text characters if
+    // this is a monospace font, otherwise return 0.
+    text = find_child(frames.children[0], "text");
+    originalContent = text.textContent;
+    text.textContent = "!";
+    bangWidth = text.getComputedTextLength();
+    text.textContent = "W";
+    wWidth = text.getComputedTextLength();
+    text.textContent = originalContent;
+    if (bangWidth === wWidth) {
+        return bangWidth;
+    } else {
+        return 0;
+    }
+}
+function update_text_for_elements(elements) {
+    // In order to render quickly in the browser, you want to do one pass of
+    // reading attributes, and one pass of mutating attributes. See
+    // https://web.dev/avoid-large-complex-layouts-and-layout-thrashing/ for details.
+
+    // Fall back to inefficient calculation, if we're variable-width font.
+    // TODO This should be optimized somehow too.
+    if (known_font_width === 0) {
+        for (var i = 0; i < elements.length; i++) {
+            update_text(elements[i]);
+        }
+        return;
+    }
+
+    var textElemNewAttributes = [];
+    for (var i = 0; i < elements.length; i++) {
+        var e = elements[i];
+        var r = find_child(e, "rect");
+        var t = find_child(e, "text");
+        var w = parseFloat(r.attributes.width.value) * frames.attributes.width.value / 100 - 3;
+        var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+        var newX = format_percent((parseFloat(r.attributes.x.value) + (100 * 3 / frames.attributes.width.value)));
+
+        // Smaller than this size won't fit anything
+        if (w < 2 * known_font_width) {
+            textElemNewAttributes.push([newX, ""]);
+            continue;
+        }
+
+        // Fit in full text width
+        if (txt.length * known_font_width < w) {
+            textElemNewAttributes.push([newX, txt]);
+            continue;
+        }
+
+        var substringLength = Math.floor(w / known_font_width) - 2;
+        if (truncate_text_right) {
+            // Truncate the right side of the text.
+            textElemNewAttributes.push([newX, txt.substring(0, substringLength) + ".."]);
+            continue;
+        } else {
+            // Truncate the left side of the text.
+            textElemNewAttributes.push([newX, ".." + txt.substring(txt.length - substringLength, txt.length)]);
+            continue;
+        }
+    }
+
+    console.assert(textElemNewAttributes.length === elements.length, "Resize failed, please file a bug at https://github.com/jonhoo/inferno/");
+
+    // Now that we know new textContent, set it all in one go so we don't refresh a bazillion times.
+    for (var i = 0; i < elements.length; i++) {
+        var e = elements[i];
+        var values = textElemNewAttributes[i];
+        var t = find_child(e, "text");
+        t.attributes.x.value = values[0];
+        t.textContent = values[1];
+    }
+}
+
+function update_text(e) {
+    var r = find_child(e, "rect");
+    var t = find_child(e, "text");
+    var w = parseFloat(r.attributes.width.value) * frames.attributes.width.value / 100 - 3;
+    var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+    t.attributes.x.value = format_percent((parseFloat(r.attributes.x.value) + (100 * 3 / frames.attributes.width.value)));
+
+    // Smaller than this size won't fit anything
+    if (w < 2 * fontsize * fontwidth) {
+        t.textContent = "";
+        return;
+    }
+    t.textContent = txt;
+    // Fit in full text width
+    if (t.getComputedTextLength() < w)
+        return;
+    if (truncate_text_right) {
+        // Truncate the right side of the text.
+        for (var x = txt.length - 2; x > 0; x--) {
+            if (t.getSubStringLength(0, x + 2) <= w) {
+                t.textContent = txt.substring(0, x) + "..";
+                return;
+            }
+        }
+    } else {
+        // Truncate the left side of the text.
+        for (var x = 2; x < txt.length; x++) {
+            if (t.getSubStringLength(x - 2, txt.length) <= w) {
+                t.textContent = ".." + txt.substring(x, txt.length);
+                return;
+            }
+        }
+    }
+    t.textContent = "";
+}
+// zoom
+function zoom_reset(e) {
+    if (e.tagName == "rect") {
+        e.attributes.x.value = format_percent(100 * parseInt(e.attributes["fg:x"].value) / total_samples);
+        e.attributes.width.value = format_percent(100 * parseInt(e.attributes["fg:w"].value) / total_samples);
+    }
+    if (e.childNodes == undefined) return;
+    for(var i = 0, c = e.childNodes; i < c.length; i++) {
+        zoom_reset(c[i]);
+    }
+}
+function zoom_child(e, x, zoomed_width_samples) {
+    if (e.tagName == "text") {
+        var parent_x = parseFloat(find_child(e.parentNode, "rect[x]").attributes.x.value);
+        e.attributes.x.value = format_percent(parent_x + (100 * 3 / frames.attributes.width.value));
+    } else if (e.tagName == "rect") {
+        e.attributes.x.value = format_percent(100 * (parseInt(e.attributes["fg:x"].value) - x) / zoomed_width_samples);
+        e.attributes.width.value = format_percent(100 * parseInt(e.attributes["fg:w"].value) / zoomed_width_samples);
+    }
+    if (e.childNodes == undefined) return;
+    for(var i = 0, c = e.childNodes; i < c.length; i++) {
+        zoom_child(c[i], x, zoomed_width_samples);
+    }
+}
+function zoom_parent(e) {
+    if (e.attributes) {
+        if (e.attributes.x != undefined) {
+            e.attributes.x.value = "0.0%";
+        }
+        if (e.attributes.width != undefined) {
+            e.attributes.width.value = "100.0%";
+        }
+    }
+    if (e.childNodes == undefined) return;
+    for(var i = 0, c = e.childNodes; i < c.length; i++) {
+        zoom_parent(c[i]);
+    }
+}
+function zoom(node) {
+    var attr = find_child(node, "rect").attributes;
+    var width = parseInt(attr["fg:w"].value);
+    var xmin = parseInt(attr["fg:x"].value);
+    var xmax = xmin + width;
+    var ymin = parseFloat(attr.y.value);
+    unzoombtn.classList.remove("hide");
+    var el = frames.children;
+    var to_update_text = [];
+    for (var i = 0; i < el.length; i++) {
+        var e = el[i];
+        var a = find_child(e, "rect").attributes;
+        var ex = parseInt(a["fg:x"].value);
+        var ew = parseInt(a["fg:w"].value);
+        // Is it an ancestor
+        if (!inverted) {
+            var upstack = parseFloat(a.y.value) > ymin;
+        } else {
+            var upstack = parseFloat(a.y.value) < ymin;
+        }
+        if (upstack) {
+            // Direct ancestor
+            if (ex <= xmin && (ex+ew) >= xmax) {
+                e.classList.add("parent");
+                zoom_parent(e);
+                to_update_text.push(e);
+            }
+            // not in current path
+            else
+                e.classList.add("hide");
+        }
+        // Children maybe
+        else {
+            // no common path
+            if (ex < xmin || ex >= xmax) {
+                e.classList.add("hide");
+            }
+            else {
+                zoom_child(e, xmin, width);
+                to_update_text.push(e);
+            }
+        }
+    }
+    update_text_for_elements(to_update_text);
+}
+function unzoom() {
+    unzoombtn.classList.add("hide");
+    var el = frames.children;
+    for(var i = 0; i < el.length; i++) {
+        el[i].classList.remove("parent");
+        el[i].classList.remove("hide");
+        zoom_reset(el[i]);
+    }
+    update_text_for_elements(el);
+}
+// search
+function reset_search() {
+    var el = document.querySelectorAll("#frames rect");
+    for (var i = 0; i < el.length; i++) {
+        orig_load(el[i], "fill")
+    }
+    var params = get_params();
+    delete params.s;
+    history.replaceState(null, null, parse_params(params));
+}
+function search_prompt() {
+    if (!searching) {
+        var term = prompt("Enter a search term (regexp " +
+            "allowed, eg: ^ext4_)", "");
+        if (term != null) {
+            search(term)
+        }
+    } else {
+        reset_search();
+        searching = 0;
+        searchbtn.classList.remove("show");
+        searchbtn.firstChild.nodeValue = "Search"
+        matchedtxt.classList.add("hide");
+        matchedtxt.firstChild.nodeValue = ""
+    }
+}
+function search(term) {
+    var re = new RegExp(term);
+    var el = frames.children;
+    var matches = new Object();
+    var maxwidth = 0;
+    for (var i = 0; i < el.length; i++) {
+        var e = el[i];
+        // Skip over frames which are either not visible, or below the zoomed-to frame
+        if (e.classList.contains("hide") || e.classList.contains("parent")) {
+            continue;
+        }
+        var func = g_to_func(e);
+        var rect = find_child(e, "rect");
+        if (func == null || rect == null)
+            continue;
+        // Save max width. Only works as we have a root frame
+        var w = parseInt(rect.attributes["fg:w"].value);
+        if (w > maxwidth)
+            maxwidth = w;
+        if (func.match(re)) {
+            // highlight
+            var x = parseInt(rect.attributes["fg:x"].value);
+            orig_save(rect, "fill");
+            rect.attributes.fill.value = searchcolor;
+            // remember matches
+            if (matches[x] == undefined) {
+                matches[x] = w;
+            } else {
+                if (w > matches[x]) {
+                    // overwrite with parent
+                    matches[x] = w;
+                }
+            }
+            searching = 1;
+        }
+    }
+    if (!searching)
+        return;
+    var params = get_params();
+    params.s = term;
+    history.replaceState(null, null, parse_params(params));
+
+    searchbtn.classList.add("show");
+    searchbtn.firstChild.nodeValue = "Reset Search";
+    // calculate percent matched, excluding vertical overlap
+    var count = 0;
+    var lastx = -1;
+    var lastw = 0;
+    var keys = Array();
+    for (k in matches) {
+        if (matches.hasOwnProperty(k))
+            keys.push(k);
+    }
+    // sort the matched frames by their x location
+    // ascending, then width descending
+    keys.sort(function(a, b){
+        return a - b;
+    });
+    // Step through frames saving only the biggest bottom-up frames
+    // thanks to the sort order. This relies on the tree property
+    // where children are always smaller than their parents.
+    for (var k in keys) {
+        var x = parseInt(keys[k]);
+        var w = matches[keys[k]];
+        if (x >= lastx + lastw) {
+            count += w;
+            lastx = x;
+            lastw = w;
+        }
+    }
+    // display matched percent
+    matchedtxt.classList.remove("hide");
+    var pct = 100 * count / maxwidth;
+    if (pct != 100) pct = pct.toFixed(1);
+    matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+}
+function format_percent(n) {
+    return n.toFixed(4) + "%";
+}
+]]>
+  </script>
+  <rect width="100%" height="518" fill="url(#background)"/>
+  <text x="50%" y="24" font-size="17" text-anchor="middle">Flame Graph</text>
+  <text id="details" x="10" y="501" fill="#000"> </text>
+  <text x="1190" y="24" cursor="pointer" opacity=".1" text-anchor="end">Search</text>
+  <text x="1190" y="501" text-anchor="end"> </text>
+  <svg id="frames" width="1180" x="10">
+    <rect fg:w="1" fg:x="0" width=".054%" height="15" x="0%" y="357" fill="#E30007"/>
+    <rect fg:w="1" fg:x="1" width=".054%" height="15" x=".054%" y="357" fill="#D90018"/>
+    <rect fg:w="1" fg:x="1" width=".054%" height="15" x=".054%" y="341" fill="#DDC136"/>
+    <rect fg:w="1" fg:x="2" width=".054%" height="15" x=".108%" y="357" fill="#F8D406"/>
+    <rect fg:w="1" fg:x="2" width=".054%" height="15" x=".108%" y="341" fill="#D04423"/>
+    <rect fg:w="1" fg:x="3" width=".054%" height="15" x=".162%" y="357" fill="#E88000"/>
+    <rect fg:w="1" fg:x="3" width=".054%" height="15" x=".162%" y="341" fill="#CFA02F"/>
+    <rect fg:w="5" fg:x="0" width=".271%" height="15" x="0%" y="453" fill="#E41722"/>
+    <rect fg:w="5" fg:x="0" width=".271%" height="15" x="0%" y="437" fill="#DA1E1A"/>
+    <rect fg:w="5" fg:x="0" width=".271%" height="15" x="0%" y="421" fill="#DC7A13"/>
+    <rect fg:w="5" fg:x="0" width=".271%" height="15" x="0%" y="405" fill="#FAE42A"/>
+    <rect fg:w="5" fg:x="0" width=".271%" height="15" x="0%" y="389" fill="#F0C11C"/>
+    <rect fg:w="5" fg:x="0" width=".271%" height="15" x="0%" y="373" fill="#D81425"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="357" fill="#CEBC27"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="341" fill="#D9CF0D"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="325" fill="#E74926"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="309" fill="#E1142E"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="293" fill="#D21F29"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="277" fill="#DDC82F"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="261" fill="#E21A05"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="245" fill="#F9211A"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="229" fill="#EBB71C"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="213" fill="#DD0526"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="197" fill="#F7122A"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="181" fill="#F1832D"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="165" fill="#F91F1D"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="149" fill="#E16F35"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="133" fill="#EEA011"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="117" fill="#D69430"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="101" fill="#E82431"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="85" fill="#D16718"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="69" fill="#E55808"/>
+    <rect fg:w="1" fg:x="4" width=".054%" height="15" x=".217%" y="53" fill="#D5B513"/>
+    <rect fg:w="1" fg:x="5" width=".054%" height="15" x=".271%" y="373" fill="#FEBF36"/>
+    <rect fg:w="32" fg:x="9" width="1.732%" height="15" x=".487%" y="357" fill="#F15325"/>
+    <rect fg:w="1" fg:x="41" width=".054%" height="15" x="2.22%" y="357" fill="#E92427"/>
+    <rect fg:w="1" fg:x="42" width=".054%" height="15" x="2.274%" y="325" fill="#E20336"/>
+    <rect fg:w="2" fg:x="42" width=".108%" height="15" x="2.274%" y="357" fill="#F5C028"/>
+    <rect fg:w="2" fg:x="42" width=".108%" height="15" x="2.274%" y="341" fill="#EEA71D"/>
+    <rect fg:w="1" fg:x="43" width=".054%" height="15" x="2.328%" y="325" fill="#E8B633"/>
+    <rect fg:w="1" fg:x="43" width=".054%" height="15" x="2.328%" y="309" fill="#E73C27"/>
+    <rect fg:w="1" fg:x="44" width=".054%" height="15" x="2.382%" y="357" fill="#D0450C"/>
+    <rect fg:w="1" fg:x="44" width=".054%" height="15" x="2.382%" y="341" fill="#EB5D25"/>
+    <rect fg:w="1" fg:x="44" width=".054%" height="15" x="2.382%" y="325" fill="#D57427"/>
+    <rect fg:w="1" fg:x="44" width=".054%" height="15" x="2.382%" y="309" fill="#DECF1D"/>
+    <rect fg:w="1" fg:x="44" width=".054%" height="15" x="2.382%" y="293" fill="#CE601E"/>
+    <rect fg:w="1" fg:x="44" width=".054%" height="15" x="2.382%" y="277" fill="#DA8A04"/>
+    <rect fg:w="1" fg:x="45" width=".054%" height="15" x="2.436%" y="325" fill="#FABF0E"/>
+    <rect fg:w="44" fg:x="46" width="2.382%" height="15" x="2.49%" y="325" fill="#EF3C28"/>
+    <text x="2.74%" y="335.5">li..</text>
+    <rect fg:w="47" fg:x="45" width="2.545%" height="15" x="2.436%" y="341" fill="#CE1B30"/>
+    <text x="2.686%" y="351.5">li..</text>
+    <rect fg:w="2" fg:x="90" width=".108%" height="15" x="4.873%" y="325" fill="#E12308"/>
+    <rect fg:w="48" fg:x="45" width="2.599%" height="15" x="2.436%" y="357" fill="#FAD518"/>
+    <text x="2.686%" y="367.5">to..</text>
+    <rect fg:w="1" fg:x="92" width=".054%" height="15" x="4.981%" y="341" fill="#F77B16"/>
+    <rect fg:w="37" fg:x="93" width="2.003%" height="15" x="5.035%" y="341" fill="#E78A26"/>
+    <text x="5.285%" y="351.5">l..</text>
+    <rect fg:w="1" fg:x="130" width=".054%" height="15" x="7.038%" y="341" fill="#E7912E"/>
+    <rect fg:w="1" fg:x="131" width=".054%" height="15" x="7.093%" y="309" fill="#FB760B"/>
+    <rect fg:w="4" fg:x="131" width=".217%" height="15" x="7.093%" y="325" fill="#D99319"/>
+    <rect fg:w="3" fg:x="132" width=".162%" height="15" x="7.147%" y="309" fill="#F75125"/>
+    <rect fg:w="1" fg:x="134" width=".054%" height="15" x="7.255%" y="293" fill="#D10C26"/>
+    <rect fg:w="1" fg:x="135" width=".054%" height="15" x="7.309%" y="309" fill="#E30109"/>
+    <rect fg:w="1" fg:x="136" width=".054%" height="15" x="7.363%" y="277" fill="#F82F2B"/>
+    <rect fg:w="45" fg:x="93" width="2.436%" height="15" x="5.035%" y="357" fill="#DD0A1E"/>
+    <text x="5.285%" y="367.5">to..</text>
+    <rect fg:w="7" fg:x="131" width=".379%" height="15" x="7.093%" y="341" fill="#D2E501"/>
+    <rect fg:w="3" fg:x="135" width=".162%" height="15" x="7.309%" y="325" fill="#DE9425"/>
+    <rect fg:w="2" fg:x="136" width=".108%" height="15" x="7.363%" y="309" fill="#EA4321"/>
+    <rect fg:w="2" fg:x="136" width=".108%" height="15" x="7.363%" y="293" fill="#F76223"/>
+    <rect fg:w="1" fg:x="137" width=".054%" height="15" x="7.417%" y="277" fill="#F78A34"/>
+    <rect fg:w="1" fg:x="137" width=".054%" height="15" x="7.417%" y="261" fill="#D54F1E"/>
+    <rect fg:w="31" fg:x="139" width="1.678%" height="15" x="7.526%" y="341" fill="#F6B117"/>
+    <rect fg:w="1" fg:x="170" width=".054%" height="15" x="9.204%" y="341" fill="#E63E1B"/>
+    <rect fg:w="1" fg:x="171" width=".054%" height="15" x="9.258%" y="325" fill="#D89A08"/>
+    <rect fg:w="1" fg:x="172" width=".054%" height="15" x="9.312%" y="325" fill="#F4232D"/>
+    <rect fg:w="1" fg:x="173" width=".054%" height="15" x="9.367%" y="325" fill="#FB730C"/>
+    <rect fg:w="1" fg:x="173" width=".054%" height="15" x="9.367%" y="309" fill="#F03632"/>
+    <rect fg:w="1" fg:x="173" width=".054%" height="15" x="9.367%" y="293" fill="#E95434"/>
+    <rect fg:w="4" fg:x="171" width=".217%" height="15" x="9.258%" y="341" fill="#CF752F"/>
+    <rect fg:w="1" fg:x="174" width=".054%" height="15" x="9.421%" y="325" fill="#F92B27"/>
+    <rect fg:w="1" fg:x="174" width=".054%" height="15" x="9.421%" y="309" fill="#D1262C"/>
+    <rect fg:w="1" fg:x="174" width=".054%" height="15" x="9.421%" y="293" fill="#ECD417"/>
+    <rect fg:w="1" fg:x="174" width=".054%" height="15" x="9.421%" y="277" fill="#F24F15"/>
+    <rect fg:w="1" fg:x="174" width=".054%" height="15" x="9.421%" y="261" fill="#D36023"/>
+    <rect fg:w="1" fg:x="174" width=".054%" height="15" x="9.421%" y="245" fill="#FDD728"/>
+    <rect fg:w="1" fg:x="174" width=".054%" height="15" x="9.421%" y="229" fill="#D35115"/>
+    <rect fg:w="1" fg:x="175" width=".054%" height="15" x="9.475%" y="341" fill="#D0BE26"/>
+    <rect fg:w="1" fg:x="175" width=".054%" height="15" x="9.475%" y="325" fill="#EBD526"/>
+    <rect fg:w="1" fg:x="175" width=".054%" height="15" x="9.475%" y="309" fill="#ED7A26"/>
+    <rect fg:w="1" fg:x="175" width=".054%" height="15" x="9.475%" y="293" fill="#F4DA23"/>
+    <rect fg:w="1" fg:x="175" width=".054%" height="15" x="9.475%" y="277" fill="#F0442F"/>
+    <rect fg:w="1" fg:x="175" width=".054%" height="15" x="9.475%" y="261" fill="#D21035"/>
+    <rect fg:w="1" fg:x="175" width=".054%" height="15" x="9.475%" y="245" fill="#EB7C0C"/>
+    <rect fg:w="1" fg:x="175" width=".054%" height="15" x="9.475%" y="229" fill="#E0A90B"/>
+    <rect fg:w="1" fg:x="176" width=".054%" height="15" x="9.529%" y="261" fill="#FAA602"/>
+    <rect fg:w="1" fg:x="177" width=".054%" height="15" x="9.583%" y="261" fill="#F2D81D"/>
+    <rect fg:w="1" fg:x="177" width=".054%" height="15" x="9.583%" y="245" fill="#E6741B"/>
+    <rect fg:w="1" fg:x="177" width=".054%" height="15" x="9.583%" y="229" fill="#E46330"/>
+    <rect fg:w="41" fg:x="138" width="2.22%" height="15" x="7.472%" y="357" fill="#FD0B06"/>
+    <text x="7.722%" y="367.5">t..</text>
+    <rect fg:w="3" fg:x="176" width=".162%" height="15" x="9.529%" y="341" fill="#F78F27"/>
+    <rect fg:w="3" fg:x="176" width=".162%" height="15" x="9.529%" y="325" fill="#EC610A"/>
+    <rect fg:w="3" fg:x="176" width=".162%" height="15" x="9.529%" y="309" fill="#E9D013"/>
+    <rect fg:w="3" fg:x="176" width=".162%" height="15" x="9.529%" y="293" fill="#D8A402"/>
+    <rect fg:w="3" fg:x="176" width=".162%" height="15" x="9.529%" y="277" fill="#DC8105"/>
+    <rect fg:w="1" fg:x="178" width=".054%" height="15" x="9.637%" y="261" fill="#F2110A"/>
+    <rect fg:w="1" fg:x="179" width=".054%" height="15" x="9.691%" y="341" fill="#F26B00"/>
+    <rect fg:w="1" fg:x="180" width=".054%" height="15" x="9.745%" y="341" fill="#FB1C1F"/>
+    <rect fg:w="1" fg:x="181" width=".054%" height="15" x="9.8%" y="325" fill="#E9DF0A"/>
+    <rect fg:w="1" fg:x="182" width=".054%" height="15" x="9.854%" y="325" fill="#D7151B"/>
+    <rect fg:w="1" fg:x="183" width=".054%" height="15" x="9.908%" y="325" fill="#E81715"/>
+    <rect fg:w="1" fg:x="184" width=".054%" height="15" x="9.962%" y="325" fill="#F40517"/>
+    <rect fg:w="1" fg:x="187" width=".054%" height="15" x="10.124%" y="309" fill="#E2512E"/>
+    <rect fg:w="3" fg:x="188" width=".162%" height="15" x="10.179%" y="309" fill="#F7461E"/>
+    <rect fg:w="3" fg:x="188" width=".162%" height="15" x="10.179%" y="293" fill="#D44413"/>
+    <rect fg:w="2" fg:x="189" width=".108%" height="15" x="10.233%" y="277" fill="#F0BB0D"/>
+    <rect fg:w="1" fg:x="191" width=".054%" height="15" x="10.341%" y="309" fill="#DF711A"/>
+    <rect fg:w="2" fg:x="192" width=".108%" height="15" x="10.395%" y="309" fill="#CEC002"/>
+    <rect fg:w="14" fg:x="181" width=".758%" height="15" x="9.8%" y="341" fill="#F16C04"/>
+    <rect fg:w="10" fg:x="185" width=".541%" height="15" x="10.016%" y="325" fill="#F7AD31"/>
+    <rect fg:w="1" fg:x="194" width=".054%" height="15" x="10.504%" y="309" fill="#E07223"/>
+    <rect fg:w="1" fg:x="195" width=".054%" height="15" x="10.558%" y="325" fill="#F59F1B"/>
+    <rect fg:w="19" fg:x="179" width="1.029%" height="15" x="9.691%" y="357" fill="#F5AC2C"/>
+    <rect fg:w="3" fg:x="195" width=".162%" height="15" x="10.558%" y="341" fill="#EC170B"/>
+    <rect fg:w="2" fg:x="196" width=".108%" height="15" x="10.612%" y="325" fill="#CD7526"/>
+    <rect fg:w="1" fg:x="197" width=".054%" height="15" x="10.666%" y="309" fill="#ED4819"/>
+    <rect fg:w="1" fg:x="197" width=".054%" height="15" x="10.666%" y="293" fill="#F44609"/>
+    <rect fg:w="199" fg:x="199" width="10.774%" height="15" x="10.774%" y="325" fill="#D97D27"/>
+    <text x="11.024%" y="335.5">libsystem_kernel..</text>
+    <rect fg:w="398" fg:x="6" width="21.549%" height="15" x=".325%" y="373" fill="#EB240A"/>
+    <text x=".575%" y="383.5">tokei`ignore::walk::Worker::run</text>
+    <rect fg:w="206" fg:x="198" width="11.153%" height="15" x="10.72%" y="357" fill="#FB7B2F"/>
+    <text x="10.97%" y="367.5">tokei`std::sys::..</text>
+    <rect fg:w="205" fg:x="199" width="11.099%" height="15" x="10.774%" y="341" fill="#DD0D0D"/>
+    <text x="11.024%" y="351.5">libsystem_c.dyli..</text>
+    <rect fg:w="6" fg:x="398" width=".325%" height="15" x="21.549%" y="325" fill="#EE8309"/>
+    <rect fg:w="2" fg:x="404" width=".108%" height="15" x="21.873%" y="341" fill="#D33208"/>
+    <rect fg:w="1" fg:x="407" width=".054%" height="15" x="22.036%" y="309" fill="#F5B618"/>
+    <rect fg:w="1" fg:x="408" width=".054%" height="15" x="22.09%" y="309" fill="#F20E25"/>
+    <rect fg:w="1" fg:x="409" width=".054%" height="15" x="22.144%" y="309" fill="#F6E40C"/>
+    <rect fg:w="1" fg:x="409" width=".054%" height="15" x="22.144%" y="293" fill="#D5370F"/>
+    <rect fg:w="114" fg:x="411" width="6.172%" height="15" x="22.252%" y="293" fill="#D10903"/>
+    <text x="22.502%" y="303.5">libsyste..</text>
+    <rect fg:w="1" fg:x="525" width=".054%" height="15" x="28.424%" y="293" fill="#E63B1E"/>
+    <rect fg:w="1" fg:x="526" width=".054%" height="15" x="28.479%" y="293" fill="#D17915"/>
+    <rect fg:w="1" fg:x="527" width=".054%" height="15" x="28.533%" y="277" fill="#DC6D0D"/>
+    <rect fg:w="2" fg:x="528" width=".108%" height="15" x="28.587%" y="277" fill="#E81201"/>
+    <rect fg:w="1" fg:x="529" width=".054%" height="15" x="28.641%" y="261" fill="#D7292A"/>
+    <rect fg:w="2" fg:x="530" width=".108%" height="15" x="28.695%" y="277" fill="#E07B24"/>
+    <rect fg:w="1" fg:x="532" width=".054%" height="15" x="28.803%" y="277" fill="#F07D03"/>
+    <rect fg:w="6" fg:x="533" width=".325%" height="15" x="28.858%" y="277" fill="#CD6232"/>
+    <rect fg:w="6" fg:x="533" width=".325%" height="15" x="28.858%" y="261" fill="#CDB925"/>
+    <rect fg:w="1" fg:x="539" width=".054%" height="15" x="29.183%" y="245" fill="#EECF0F"/>
+    <rect fg:w="1" fg:x="539" width=".054%" height="15" x="29.183%" y="229" fill="#D5C72A"/>
+    <rect fg:w="1" fg:x="539" width=".054%" height="15" x="29.183%" y="213" fill="#EBC90B"/>
+    <rect fg:w="2" fg:x="539" width=".108%" height="15" x="29.183%" y="277" fill="#CF2E0B"/>
+    <rect fg:w="2" fg:x="539" width=".108%" height="15" x="29.183%" y="261" fill="#F12323"/>
+    <rect fg:w="1" fg:x="540" width=".054%" height="15" x="29.237%" y="245" fill="#F3202F"/>
+    <rect fg:w="2" fg:x="542" width=".108%" height="15" x="29.345%" y="245" fill="#F7CA17"/>
+    <rect fg:w="7" fg:x="541" width=".379%" height="15" x="29.291%" y="277" fill="#DB660B"/>
+    <rect fg:w="7" fg:x="541" width=".379%" height="15" x="29.291%" y="261" fill="#F36E2C"/>
+    <rect fg:w="4" fg:x="544" width=".217%" height="15" x="29.453%" y="245" fill="#DE4A36"/>
+    <rect fg:w="430" fg:x="548" width="23.281%" height="15" x="29.67%" y="277" fill="#D8630C"/>
+    <text x="29.92%" y="287.5">tokei`std::fs::OpenOptions::_open</text>
+    <rect fg:w="428" fg:x="550" width="23.173%" height="15" x="29.778%" y="261" fill="#E2161A"/>
+    <text x="30.028%" y="271.5">libsystem_kernel.dylib`__open</text>
+    <rect fg:w="57" fg:x="979" width="3.086%" height="15" x="53.005%" y="261" fill="#D9A30A"/>
+    <text x="53.255%" y="271.5">lib..</text>
+    <rect fg:w="1" fg:x="1038" width=".054%" height="15" x="56.199%" y="197" fill="#D51935"/>
+    <rect fg:w="3" fg:x="1038" width=".162%" height="15" x="56.199%" y="213" fill="#FC691A"/>
+    <rect fg:w="2" fg:x="1039" width=".108%" height="15" x="56.253%" y="197" fill="#DC272B"/>
+    <rect fg:w="2" fg:x="1039" width=".108%" height="15" x="56.253%" y="181" fill="#E54430"/>
+    <rect fg:w="2" fg:x="1039" width=".108%" height="15" x="56.253%" y="165" fill="#FC0820"/>
+    <rect fg:w="1" fg:x="1040" width=".054%" height="15" x="56.307%" y="149" fill="#DF142B"/>
+    <rect fg:w="1" fg:x="1041" width=".054%" height="15" x="56.362%" y="213" fill="#E55131"/>
+    <rect fg:w="1" fg:x="1041" width=".054%" height="15" x="56.362%" y="197" fill="#EC1C24"/>
+    <rect fg:w="1" fg:x="1041" width=".054%" height="15" x="56.362%" y="181" fill="#F9B91A"/>
+    <rect fg:w="1" fg:x="1041" width=".054%" height="15" x="56.362%" y="165" fill="#F9AE21"/>
+    <rect fg:w="1" fg:x="1041" width=".054%" height="15" x="56.362%" y="149" fill="#E9C925"/>
+    <rect fg:w="6" fg:x="1037" width=".325%" height="15" x="56.145%" y="229" fill="#DD4E1A"/>
+    <rect fg:w="1" fg:x="1042" width=".054%" height="15" x="56.416%" y="213" fill="#FA7F1E"/>
+    <rect fg:w="8" fg:x="1036" width=".433%" height="15" x="56.091%" y="261" fill="#E6312C"/>
+    <rect fg:w="7" fg:x="1037" width=".379%" height="15" x="56.145%" y="245" fill="#E54317"/>
+    <rect fg:w="1" fg:x="1043" width=".054%" height="15" x="56.47%" y="229" fill="#F9532F"/>
+    <rect fg:w="77" fg:x="978" width="4.169%" height="15" x="52.951%" y="277" fill="#D72B03"/>
+    <text x="53.201%" y="287.5">tokei..</text>
+    <rect fg:w="11" fg:x="1044" width=".596%" height="15" x="56.524%" y="261" fill="#EE9A0D"/>
+    <rect fg:w="11" fg:x="1044" width=".596%" height="15" x="56.524%" y="245" fill="#DB3802"/>
+    <rect fg:w="57" fg:x="1076" width="3.086%" height="15" x="58.257%" y="261" fill="#E90004"/>
+    <text x="58.507%" y="271.5">lib..</text>
+    <rect fg:w="14" fg:x="1133" width=".758%" height="15" x="61.343%" y="261" fill="#EB1E07"/>
+    <rect fg:w="15" fg:x="1147" width=".812%" height="15" x="62.101%" y="261" fill="#FA4F0D"/>
+    <rect fg:w="1" fg:x="1162" width=".054%" height="15" x="62.913%" y="261" fill="#D39222"/>
+    <rect fg:w="4" fg:x="1163" width=".217%" height="15" x="62.967%" y="261" fill="#E41626"/>
+    <rect fg:w="191" fg:x="1167" width="10.341%" height="15" x="63.184%" y="261" fill="#EBA805"/>
+    <text x="63.434%" y="271.5">tokei`tokei::la..</text>
+    <rect fg:w="326" fg:x="1055" width="17.65%" height="15" x="57.12%" y="277" fill="#DD9B10"/>
+    <text x="57.37%" y="287.5">tokei`tokei::language::lang..</text>
+    <rect fg:w="23" fg:x="1358" width="1.245%" height="15" x="73.525%" y="261" fill="#D7D735"/>
+    <rect fg:w="17" fg:x="1364" width=".92%" height="15" x="73.85%" y="245" fill="#DF040A"/>
+    <rect fg:w="16" fg:x="1365" width=".866%" height="15" x="73.904%" y="229" fill="#EA6706"/>
+    <rect fg:w="10" fg:x="1371" width=".541%" height="15" x="74.228%" y="213" fill="#E36100"/>
+    <rect fg:w="1" fg:x="1381" width=".054%" height="15" x="74.77%" y="277" fill="#EA9635"/>
+    <rect fg:w="1" fg:x="1382" width=".054%" height="15" x="74.824%" y="277" fill="#E4C936"/>
+    <rect fg:w="1" fg:x="1382" width=".054%" height="15" x="74.824%" y="261" fill="#DE1625"/>
+    <rect fg:w="1" fg:x="1382" width=".054%" height="15" x="74.824%" y="245" fill="#ED3520"/>
+    <rect fg:w="1" fg:x="1382" width=".054%" height="15" x="74.824%" y="229" fill="#E91935"/>
+    <rect fg:w="2" fg:x="1383" width=".108%" height="15" x="74.878%" y="277" fill="#D22822"/>
+    <rect fg:w="977" fg:x="410" width="52.897%" height="15" x="22.198%" y="309" fill="#F1DC2C"/>
+    <text x="22.448%" y="319.5">tokei`&lt;rayon::iter::for_each::ForEachConsumer&lt;F&gt; as rayon::iter::plumbing::Folder&lt;T&gt;&gt;::..</text>
+    <rect fg:w="860" fg:x="527" width="46.562%" height="15" x="28.533%" y="293" fill="#EB1C23"/>
+    <text x="28.783%" y="303.5">tokei`tokei::language::language_type::LanguageType::parse</text>
+    <rect fg:w="2" fg:x="1385" width=".108%" height="15" x="74.987%" y="277" fill="#D23811"/>
+    <rect fg:w="1" fg:x="1387" width=".054%" height="15" x="75.095%" y="309" fill="#E0821D"/>
+    <rect fg:w="3" fg:x="1388" width=".162%" height="15" x="75.149%" y="293" fill="#EBD408"/>
+    <rect fg:w="3" fg:x="1388" width=".162%" height="15" x="75.149%" y="277" fill="#DF2132"/>
+    <rect fg:w="1" fg:x="1391" width=".054%" height="15" x="75.311%" y="293" fill="#DB950D"/>
+    <rect fg:w="5" fg:x="1388" width=".271%" height="15" x="75.149%" y="309" fill="#FA9C1D"/>
+    <rect fg:w="1" fg:x="1392" width=".054%" height="15" x="75.365%" y="293" fill="#D8C113"/>
+    <rect fg:w="1" fg:x="1392" width=".054%" height="15" x="75.365%" y="277" fill="#D8870E"/>
+    <rect fg:w="988" fg:x="406" width="53.492%" height="15" x="21.982%" y="325" fill="#F12F05"/>
+    <text x="22.232%" y="335.5">tokei`&lt;&amp;rayon::iter::par_bridge::IterParallelProducer&lt;Iter&gt; as rayon::iter::plumbing::Un..</text>
+    <rect fg:w="1" fg:x="1393" width=".054%" height="15" x="75.42%" y="309" fill="#E92A23"/>
+    <rect fg:w="1" fg:x="1394" width=".054%" height="15" x="75.474%" y="277" fill="#E70D06"/>
+    <rect fg:w="1" fg:x="1394" width=".054%" height="15" x="75.474%" y="261" fill="#CFB528"/>
+    <rect fg:w="19" fg:x="1395" width="1.029%" height="15" x="75.528%" y="261" fill="#FEAD31"/>
+    <rect fg:w="1" fg:x="1414" width=".054%" height="15" x="76.557%" y="245" fill="#DD0126"/>
+    <rect fg:w="1" fg:x="1415" width=".054%" height="15" x="76.611%" y="245" fill="#CE7C2E"/>
+    <rect fg:w="1" fg:x="1416" width=".054%" height="15" x="76.665%" y="213" fill="#F9150B"/>
+    <rect fg:w="1" fg:x="1417" width=".054%" height="15" x="76.719%" y="213" fill="#DEC928"/>
+    <rect fg:w="3" fg:x="1416" width=".162%" height="15" x="76.665%" y="245" fill="#EB3D1D"/>
+    <rect fg:w="3" fg:x="1416" width=".162%" height="15" x="76.665%" y="229" fill="#DBCF03"/>
+    <rect fg:w="1" fg:x="1418" width=".054%" height="15" x="76.773%" y="213" fill="#DE382E"/>
+    <rect fg:w="48" fg:x="1419" width="2.599%" height="15" x="76.827%" y="245" fill="#EF4C36"/>
+    <text x="77.077%" y="255.5">to..</text>
+    <rect fg:w="48" fg:x="1419" width="2.599%" height="15" x="76.827%" y="229" fill="#E77C1B"/>
+    <text x="77.077%" y="239.5">li..</text>
+    <rect fg:w="4" fg:x="1467" width=".217%" height="15" x="79.426%" y="229" fill="#F9C306"/>
+    <rect fg:w="5" fg:x="1467" width=".271%" height="15" x="79.426%" y="245" fill="#EDAE2F"/>
+    <rect fg:w="1" fg:x="1471" width=".054%" height="15" x="79.643%" y="229" fill="#CEC91F"/>
+    <rect fg:w="1" fg:x="1471" width=".054%" height="15" x="79.643%" y="213" fill="#E73934"/>
+    <rect fg:w="20" fg:x="1473" width="1.083%" height="15" x="79.751%" y="229" fill="#F8B116"/>
+    <rect fg:w="4" fg:x="1493" width=".217%" height="15" x="80.834%" y="229" fill="#D7D325"/>
+    <rect fg:w="1" fg:x="1497" width=".054%" height="15" x="81.05%" y="229" fill="#F18033"/>
+    <rect fg:w="39" fg:x="1498" width="2.111%" height="15" x="81.105%" y="229" fill="#E3A51F"/>
+    <text x="81.355%" y="239.5">t..</text>
+    <rect fg:w="69" fg:x="1472" width="3.736%" height="15" x="79.697%" y="245" fill="#E4A718"/>
+    <text x="79.947%" y="255.5">toke..</text>
+    <rect fg:w="4" fg:x="1537" width=".217%" height="15" x="83.216%" y="229" fill="#E48F0C"/>
+    <rect fg:w="3" fg:x="1538" width=".162%" height="15" x="83.27%" y="213" fill="#F99508"/>
+    <rect fg:w="3" fg:x="1538" width=".162%" height="15" x="83.27%" y="197" fill="#F3232C"/>
+    <rect fg:w="1" fg:x="1540" width=".054%" height="15" x="83.379%" y="181" fill="#F65909"/>
+    <rect fg:w="149" fg:x="1394" width="8.067%" height="15" x="75.474%" y="293" fill="#E9D50D"/>
+    <text x="75.724%" y="303.5">tokei`&lt;&amp;ray..</text>
+    <rect fg:w="148" fg:x="1395" width="8.013%" height="15" x="75.528%" y="277" fill="#E98D29"/>
+    <text x="75.778%" y="287.5">tokei`&lt;rayo..</text>
+    <rect fg:w="129" fg:x="1414" width="6.984%" height="15" x="76.557%" y="261" fill="#EFA704"/>
+    <text x="76.807%" y="271.5">tokei`tok..</text>
+    <rect fg:w="2" fg:x="1541" width=".108%" height="15" x="83.433%" y="245" fill="#D1D910"/>
+    <rect fg:w="15" fg:x="1543" width=".812%" height="15" x="83.541%" y="197" fill="#DB5823"/>
+    <rect fg:w="1" fg:x="1558" width=".054%" height="15" x="84.353%" y="197" fill="#DCC117"/>
+    <rect fg:w="1" fg:x="1559" width=".054%" height="15" x="84.407%" y="181" fill="#E65A34"/>
+    <rect fg:w="2" fg:x="1560" width=".108%" height="15" x="84.461%" y="181" fill="#FC6A13"/>
+    <rect fg:w="1" fg:x="1562" width=".054%" height="15" x="84.57%" y="181" fill="#CE4A14"/>
+    <rect fg:w="1" fg:x="1562" width=".054%" height="15" x="84.57%" y="165" fill="#E68A2C"/>
+    <rect fg:w="1" fg:x="1563" width=".054%" height="15" x="84.624%" y="181" fill="#EBB62B"/>
+    <rect fg:w="1" fg:x="1563" width=".054%" height="15" x="84.624%" y="165" fill="#F21033"/>
+    <rect fg:w="1" fg:x="1563" width=".054%" height="15" x="84.624%" y="149" fill="#F80904"/>
+    <rect fg:w="1" fg:x="1564" width=".054%" height="15" x="84.678%" y="181" fill="#D21F16"/>
+    <rect fg:w="1" fg:x="1564" width=".054%" height="15" x="84.678%" y="165" fill="#EF3627"/>
+    <rect fg:w="1" fg:x="1564" width=".054%" height="15" x="84.678%" y="149" fill="#E66329"/>
+    <rect fg:w="70" fg:x="1565" width="3.79%" height="15" x="84.732%" y="181" fill="#FD6A0C"/>
+    <text x="84.982%" y="191.5">toke..</text>
+    <rect fg:w="70" fg:x="1565" width="3.79%" height="15" x="84.732%" y="165" fill="#D52E29"/>
+    <text x="84.982%" y="175.5">libs..</text>
+    <rect fg:w="10" fg:x="1635" width=".541%" height="15" x="88.522%" y="165" fill="#D78523"/>
+    <rect fg:w="1" fg:x="1645" width=".054%" height="15" x="89.063%" y="165" fill="#D51C05"/>
+    <rect fg:w="13" fg:x="1635" width=".704%" height="15" x="88.522%" y="181" fill="#D74D31"/>
+    <rect fg:w="2" fg:x="1646" width=".108%" height="15" x="89.118%" y="165" fill="#F86416"/>
+    <rect fg:w="2" fg:x="1646" width=".108%" height="15" x="89.118%" y="149" fill="#D04309"/>
+    <rect fg:w="14" fg:x="1648" width=".758%" height="15" x="89.226%" y="165" fill="#DB8515"/>
+    <rect fg:w="5" fg:x="1662" width=".271%" height="15" x="89.984%" y="165" fill="#F62E1D"/>
+    <rect fg:w="4" fg:x="1667" width=".217%" height="15" x="90.254%" y="165" fill="#F6B934"/>
+    <rect fg:w="24" fg:x="1671" width="1.299%" height="15" x="90.471%" y="165" fill="#FC880B"/>
+    <rect fg:w="156" fg:x="1543" width="8.446%" height="15" x="83.541%" y="213" fill="#DB8A35"/>
+    <text x="83.791%" y="223.5">tokei`&lt;rayon..</text>
+    <rect fg:w="140" fg:x="1559" width="7.58%" height="15" x="84.407%" y="197" fill="#D33317"/>
+    <text x="84.657%" y="207.5">tokei`toke..</text>
+    <rect fg:w="51" fg:x="1648" width="2.761%" height="15" x="89.226%" y="181" fill="#F7DD1C"/>
+    <text x="89.476%" y="191.5">to..</text>
+    <rect fg:w="4" fg:x="1695" width=".217%" height="15" x="91.77%" y="165" fill="#FBDE2D"/>
+    <rect fg:w="4" fg:x="1695" width=".217%" height="15" x="91.77%" y="149" fill="#D9A235"/>
+    <rect fg:w="3" fg:x="1696" width=".162%" height="15" x="91.825%" y="133" fill="#E55D0E"/>
+    <rect fg:w="3" fg:x="1696" width=".162%" height="15" x="91.825%" y="117" fill="#D14331"/>
+    <rect fg:w="306" fg:x="1394" width="16.567%" height="15" x="75.474%" y="325" fill="#D5571D"/>
+    <text x="75.724%" y="335.5">tokei`rayon::iter::plumbin..</text>
+    <rect fg:w="306" fg:x="1394" width="16.567%" height="15" x="75.474%" y="309" fill="#CD9734"/>
+    <text x="75.724%" y="319.5">tokei`rayon_core::join::jo..</text>
+    <rect fg:w="157" fg:x="1543" width="8.5%" height="15" x="83.541%" y="293" fill="#FDD727"/>
+    <text x="83.791%" y="303.5">tokei`rayon:..</text>
+    <rect fg:w="157" fg:x="1543" width="8.5%" height="15" x="83.541%" y="277" fill="#DDDC29"/>
+    <text x="83.791%" y="287.5">tokei`rayon_..</text>
+    <rect fg:w="157" fg:x="1543" width="8.5%" height="15" x="83.541%" y="261" fill="#DA8515"/>
+    <text x="83.791%" y="271.5">tokei`rayon:..</text>
+    <rect fg:w="157" fg:x="1543" width="8.5%" height="15" x="83.541%" y="245" fill="#DDC12B"/>
+    <text x="83.791%" y="255.5">tokei`rayon_..</text>
+    <rect fg:w="157" fg:x="1543" width="8.5%" height="15" x="83.541%" y="229" fill="#F08034"/>
+    <text x="83.791%" y="239.5">tokei`&lt;&amp;rayo..</text>
+    <rect fg:w="1" fg:x="1699" width=".054%" height="15" x="91.987%" y="213" fill="#FD720C"/>
+    <rect fg:w="1" fg:x="1699" width=".054%" height="15" x="91.987%" y="197" fill="#D7DF2F"/>
+    <rect fg:w="1" fg:x="1699" width=".054%" height="15" x="91.987%" y="181" fill="#F8E117"/>
+    <rect fg:w="1" fg:x="1699" width=".054%" height="15" x="91.987%" y="165" fill="#FA6C00"/>
+    <rect fg:w="1" fg:x="1700" width=".054%" height="15" x="92.041%" y="133" fill="#E4D007"/>
+    <rect fg:w="1" fg:x="1700" width=".054%" height="15" x="92.041%" y="117" fill="#F42D0A"/>
+    <rect fg:w="18" fg:x="1701" width=".975%" height="15" x="92.095%" y="117" fill="#CF7D19"/>
+    <rect fg:w="1" fg:x="1719" width=".054%" height="15" x="93.07%" y="101" fill="#D2C312"/>
+    <rect fg:w="1" fg:x="1719" width=".054%" height="15" x="93.07%" y="85" fill="#F9500C"/>
+    <rect fg:w="1" fg:x="1720" width=".054%" height="15" x="93.124%" y="101" fill="#DD4109"/>
+    <rect fg:w="1" fg:x="1720" width=".054%" height="15" x="93.124%" y="85" fill="#EB3124"/>
+    <rect fg:w="1" fg:x="1720" width=".054%" height="15" x="93.124%" y="69" fill="#E12014"/>
+    <rect fg:w="62" fg:x="1721" width="3.357%" height="15" x="93.178%" y="101" fill="#D78D2E"/>
+    <text x="93.428%" y="111.5">tok..</text>
+    <rect fg:w="62" fg:x="1721" width="3.357%" height="15" x="93.178%" y="85" fill="#FAA02F"/>
+    <text x="93.428%" y="95.5">lib..</text>
+    <rect fg:w="9" fg:x="1783" width=".487%" height="15" x="96.535%" y="85" fill="#D8DE28"/>
+    <rect fg:w="11" fg:x="1783" width=".596%" height="15" x="96.535%" y="101" fill="#EAD927"/>
+    <rect fg:w="2" fg:x="1792" width=".108%" height="15" x="97.022%" y="85" fill="#CFB228"/>
+    <rect fg:w="2" fg:x="1792" width=".108%" height="15" x="97.022%" y="69" fill="#DD880D"/>
+    <rect fg:w="13" fg:x="1799" width=".704%" height="15" x="97.401%" y="85" fill="#F9C70A"/>
+    <rect fg:w="2" fg:x="1812" width=".108%" height="15" x="98.105%" y="85" fill="#F9DE0D"/>
+    <rect fg:w="4" fg:x="1814" width=".217%" height="15" x="98.213%" y="85" fill="#F4B926"/>
+    <rect fg:w="24" fg:x="1818" width="1.299%" height="15" x="98.43%" y="85" fill="#ECCA09"/>
+    <rect fg:w="143" fg:x="1701" width="7.742%" height="15" x="92.095%" y="133" fill="#FAE525"/>
+    <text x="92.345%" y="143.5">tokei`&lt;rayo..</text>
+    <rect fg:w="125" fg:x="1719" width="6.768%" height="15" x="93.07%" y="117" fill="#CEAE17"/>
+    <text x="93.32%" y="127.5">tokei`tok..</text>
+    <rect fg:w="50" fg:x="1794" width="2.707%" height="15" x="97.13%" y="101" fill="#D3212B"/>
+    <text x="97.38%" y="111.5">to..</text>
+    <rect fg:w="2" fg:x="1842" width=".108%" height="15" x="99.729%" y="85" fill="#F53A32"/>
+    <rect fg:w="2" fg:x="1842" width=".108%" height="15" x="99.729%" y="69" fill="#F44424"/>
+    <rect fg:w="2" fg:x="1842" width=".108%" height="15" x="99.729%" y="53" fill="#E8E50F"/>
+    <rect fg:w="1" fg:x="1843" width=".054%" height="15" x="99.783%" y="37" fill="#FE1E17"/>
+    <rect fg:w="1" fg:x="1844" width=".054%" height="15" x="99.838%" y="117" fill="#EBA00E"/>
+    <rect fg:w="1847" fg:x="0" width="100%" height="15" x="0%" y="469" fill="#D49B2C"/>
+    <rect fg:w="1842" fg:x="5" width="99.729%" height="15" x=".271%" y="453" fill="#E20232"/>
+    <text x=".521%" y="463.5">libsystem_pthread.dylib`thread_start</text>
+    <rect fg:w="1842" fg:x="5" width="99.729%" height="15" x=".271%" y="437" fill="#EAB106"/>
+    <text x=".521%" y="447.5">libsystem_pthread.dylib`_pthread_start</text>
+    <rect fg:w="1842" fg:x="5" width="99.729%" height="15" x=".271%" y="421" fill="#D91809"/>
+    <text x=".521%" y="431.5">tokei`std::sys::pal::unix::thread::Thread::new::thread_start</text>
+    <rect fg:w="1842" fg:x="5" width="99.729%" height="15" x=".271%" y="405" fill="#DC0D2E"/>
+    <text x=".521%" y="415.5">tokei`core::ops::function::FnOnce::call_once{{vtable.shim}}</text>
+    <rect fg:w="1842" fg:x="5" width="99.729%" height="15" x=".271%" y="389" fill="#EFDD1B"/>
+    <text x=".521%" y="399.5">tokei`std::sys::backtrace::__rust_begin_short_backtrace</text>
+    <rect fg:w="1443" fg:x="404" width="78.127%" height="15" x="21.873%" y="373" fill="#DEC619"/>
+    <text x="22.123%" y="383.5">tokei`rayon_core::registry::ThreadBuilder::run</text>
+    <rect fg:w="1443" fg:x="404" width="78.127%" height="15" x="21.873%" y="357" fill="#D3630D"/>
+    <text x="22.123%" y="367.5">tokei`rayon_core::registry::WorkerThread::wait_until_cold</text>
+    <rect fg:w="1441" fg:x="406" width="78.018%" height="15" x="21.982%" y="341" fill="#E86F1F"/>
+    <text x="22.232%" y="351.5">tokei`&lt;rayon_core::job::StackJob&lt;L,F,R&gt; as rayon_core::job::Job&gt;::execute</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="325" fill="#F55225"/>
+    <text x="92.291%" y="335.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="309" fill="#E3952E"/>
+    <text x="92.291%" y="319.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="293" fill="#DA2432"/>
+    <text x="92.291%" y="303.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="277" fill="#E25030"/>
+    <text x="92.291%" y="287.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="261" fill="#EEE00F"/>
+    <text x="92.291%" y="271.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="245" fill="#F1880A"/>
+    <text x="92.291%" y="255.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="229" fill="#D0202D"/>
+    <text x="92.291%" y="239.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="213" fill="#CF8709"/>
+    <text x="92.291%" y="223.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="197" fill="#CE562C"/>
+    <text x="92.291%" y="207.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="181" fill="#F5B10F"/>
+    <text x="92.291%" y="191.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="165" fill="#CE4032"/>
+    <text x="92.291%" y="175.5">tokei`rayon..</text>
+    <rect fg:w="147" fg:x="1700" width="7.959%" height="15" x="92.041%" y="149" fill="#EA2428"/>
+    <text x="92.291%" y="159.5">tokei`&lt;&amp;ray..</text>
+    <rect fg:w="3" fg:x="1844" width=".162%" height="15" x="99.838%" y="133" fill="#D54008"/>
+    <rect fg:w="2" fg:x="1845" width=".108%" height="15" x="99.892%" y="117" fill="#D24B24"/>
+    <rect fg:w="2" fg:x="1845" width=".108%" height="15" x="99.892%" y="101" fill="#E55815"/>
+  </svg>
+</svg>
