@@ -1,41 +1,70 @@
+/* Fonts */
+@font-face {
+  font-family: "Fira Sans";
+  src: URL("fonts/FiraSans-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Fira Sans";
+  src: URL("fonts/FiraSans-Bold.ttf") format("truetype");
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: "Fira Sans";
+  src: URL("fonts/FiraSans-BoldItalic.ttf") format("truetype");
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Fira Sans";
+  src: URL("fonts/FiraSans-Italic.ttf") format("truetype");
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Fira Mono";
+  src: URL("fonts/FiraMono-Regular.ttf") format("truetype");
+}
+
 /* Global variables. */
 :root {
   /* Set sans-serif & mono fonts */
-  --sans-font: -apple-system, BlinkMacSystemFont, "Avenir Next", Avenir,
-    "Nimbus Sans L", Roboto, "Noto Sans", "Segoe UI", Arial, Helvetica,
-    "Helvetica Neue", sans-serif;
-  --mono-font: Consolas, Menlo, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+  --sans-font: "Fira Sans", "Verdana", sans-serif;
+  --mono-font: "Fira Mono", "Courier New", monospace;
   --standard-border-radius: 5px;
 
   /* Default (light) theme */
-  --bg: #fff;
-  --accent-bg: #f5f7ff;
-  --text: #212121;
-  --text-light: #585858;
+  --bg: #fffbef;
+  --accent-bg: #f2efdf;
+  --text: #5c6a72;
+  --text-light: #839199;
   --border: #898ea4;
-  --accent: #0d47a1;
-  --accent-hover: #1266e2;
+  --accent: #8da101;
+  --accent-hover: #3fb4ff;
   --accent-text: var(--bg);
-  --code: #d81b60;
-  --preformatted: #444;
-  --marked: #ffdd33;
-  --disabled: #efefef;
+  --code: #dfa000;
+  --preformatted: #5c6a72;
+  --marked: #f57d26;
+  --disabled: #efebdf;
 }
 
 /* Dark theme */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #212121;
-    --accent-bg: #2b2b2b;
-    --text: #dcdcdc;
-    --text-light: #ababab;
-    --accent: #ffb300;
-    --accent-hover: #ffe099;
+    --bg: #1e2326;
+    --accent-bg: #272e33;
+    --text: #d3c6aa;
+    --text-light: #a29579;
+    --accent: #a7c080;
+    --accent-hover: #a7c080;
     --accent-text: var(--bg);
-    --code: #f06292;
-    --preformatted: #ccc;
-    --disabled: #111;
+    --code: #dbbc7f;
+    --preformatted: #d3c6aa;
+    --marked: #e69875;
+    --disabled: #0e1316;
   }
   /* Add a bit of transparency so light media isn't so glaring in dark mode */
   img,
@@ -324,7 +353,7 @@ progress {
 aside {
   font-size: 1rem;
   width: 30%;
-  padding: 0 15px;
+  padding: 10px 15px;
   margin-inline-start: 15px;
   float: right;
 }

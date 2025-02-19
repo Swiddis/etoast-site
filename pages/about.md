@@ -47,8 +47,7 @@ code on the [Git Repo](https://github.com/Swiddis/etoast-site).
 ## Resources
 
 There are a few resources that have been greatly influential to me. Hopefully some of
-them can help you out too. I also put quite a bit of information in my writing, see the
-`Learning` section.
+them can help you out too. I also put quite a bit of information in my writing.
 
 * [No More Zero Days](https://www.reddit.com/r/NonZeroDay/comments/1qbxvz) is what got me started on being more than someone who plays games all day.
 * [A Mathematician's Lament](https://www.maa.org/external_archive/devlin/LockhartsLament.pdf) and [3blue1brown](https://www.youtube.com/c/3blue1brown) are the sole resources that got me started on pursuing STEM as a career.
