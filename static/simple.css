@@ -44,7 +44,7 @@
   --accent: #8da101;
   --accent-hover: #3fb4ff;
   --accent-text: var(--bg);
-  --code: #dfa000;
+  --code: #f85552;
   --preformatted: #5c6a72;
   --marked: #f57d26;
   --disabled: #efebdf;
@@ -61,7 +61,7 @@
     --accent: #a7c080;
     --accent-hover: #a7c080;
     --accent-text: var(--bg);
-    --code: #dbbc7f;
+    --code: #e67e80;
     --preformatted: #d3c6aa;
     --marked: #e69875;
     --disabled: #0e1316;
