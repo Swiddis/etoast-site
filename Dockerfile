@@ -11,7 +11,7 @@ RUN yarn install \
     --non-interactive \
     --production=false
 
-COPY . .
+COPY ./web .
 RUN yarn build
 
 FROM nginx

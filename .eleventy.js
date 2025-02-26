@@ -7,13 +7,13 @@ const markdownItFootnote = require("markdown-it-footnote");
 
 module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({
-    static: "static",
-    "static/favicon.ico": "favicon.ico",
-    "static/robots.txt": "robots.txt"
+    "web/static": "static",
+    "web/static/favicon.ico": "favicon.ico",
+    "web/static/robots.txt": "robots.txt"
   });
 
   eleventyConfig.addCollection("writing", function (collectionApi) {
-    return collectionApi.getFilteredByGlob("pages/writing/*.md")
+    return collectionApi.getFilteredByGlob("web/pages/writing/*.md")
       .filter(page => page.data.author_date) // Missing dates are WIP, don't show
       .sort((a, b) => new Date(b.data.author_date) - new Date(a.data.author_date));
   });
@@ -32,7 +32,7 @@ module.exports = function (eleventyConfig) {
 
   return {
     dir: {
-      input: "pages",
+      input: "web/pages",
       output: "dist",
     },
   };
