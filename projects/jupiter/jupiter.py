@@ -57,6 +57,7 @@ def compute_data_for(moon):
         "semi_major_axis": params[9],
         "semi_minor_axis": params[9] * np.sqrt(1 - params[1]),
         "period": params[10],
+        "time": spice.et2utc(EPOCH, 'ISOC', 0),
     }
 
 
