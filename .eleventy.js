@@ -6,13 +6,14 @@ import esbuild from "esbuild";
 import markdownIt from "markdown-it";
 import markdownItFootnote from "markdown-it-footnote";
 
-const config = (eleventyConfig) => {
+export default function(eleventyConfig) {
   eleventyConfig.on('eleventy.before', async () => {
     await esbuild.build({
       entryPoints: ["web/scripts/*"],
       outdir: "dist/scripts",
       platform: "browser",
       target: "esnext",
+      format: "iife",
     })
   });
 
@@ -43,6 +44,8 @@ const config = (eleventyConfig) => {
     quiet: true,
   });
 
+  eleventyConfig.addWatchTarget("./web/scripts/");
+
   return {
     dir: {
       input: "web/pages",
@@ -50,5 +53,3 @@ const config = (eleventyConfig) => {
     },
   };
 };
-
-export default config;

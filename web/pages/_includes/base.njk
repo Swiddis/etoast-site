@@ -23,6 +23,9 @@ title: swiddis.net
     {% if summary %}
         <meta property="og:description" content="{{ summary }}" />
     {% endif %}
+    {% for script in custom_scripts %}
+        <script type="text/javascript" src="{{ script }}"></script>
+    {% endfor %}
 </head>
 
 <body>
