@@ -45,6 +45,7 @@ def compute_data_for(moon):
     params = spice.oscltx(state, EPOCH, mu[1][0])
 
     return {
+        "name": moon.title(),
         "perifocal_distance": params[0],
         "eccentricity": params[1],
         "inclination": params[2],
@@ -57,7 +58,7 @@ def compute_data_for(moon):
         "semi_major_axis": params[9],
         "semi_minor_axis": params[9] * np.sqrt(1 - params[1]),
         "period": params[10],
-        "time": spice.et2utc(EPOCH, 'ISOC', 0),
+        "time": spice.et2utc(EPOCH, "ISOC", 0),
     }
 
 
@@ -75,15 +76,16 @@ def debug_validate(data):
     slightly.
     """
     expected_values = {
-        "EUROPA": (671100, 0.0090),
-        "CALLISTO": (1882700, 0.0074),
-        "IO": (421800, 0.0041),
-        "GANYMEDE": (1070400, 0.0013),
-        "AMALTHEA": (181400, 0.0032),
-        "THEBE": (221900, 0.0175),
-        "METIS": (128000, 0.0002),
-        "ADRASTEA": (129000, 0.0015),
+        "Europa": (671100, 0.0090),
+        "Callisto": (1882700, 0.0074),
+        "Io": (421800, 0.0041),
+        "Ganymede": (1070400, 0.0013),
+        "Amalthea": (181400, 0.0032),
+        "Thebe": (221900, 0.0175),
+        "Metis": (128000, 0.0002),
+        "Adrastea": (129000, 0.0015),
     }
+    data = {d["name"]: d for d in data}
 
     for k, v in expected_values.items():
         print(
@@ -97,6 +99,6 @@ def debug_validate(data):
 
 
 if __name__ == "__main__":
-    data = {body: compute_data_for(body) for body in BODIES}
+    data = list(map(compute_data_for, BODIES))
     save(data)
     debug_validate(data)
