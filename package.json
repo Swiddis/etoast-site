@@ -17,6 +17,7 @@
     "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.0",
     "eleventy-plugin-mathjax": "^2.0.4",
     "eleventy-plugin-purgecss": "^0.5.0",
+    "esbuild": "^0.25.0",
     "markdown-it-footnote": "^4.0.0"
   }
 }

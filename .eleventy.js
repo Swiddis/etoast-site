@@ -1,11 +1,21 @@
 import mathjax from "eleventy-plugin-mathjax";
 import syntaxHighlight from "@11ty/eleventy-plugin-syntaxhighlight";
 import purgeCss from "eleventy-plugin-purgecss";
+import esbuild from "esbuild";
 
 import markdownIt from "markdown-it";
 import markdownItFootnote from "markdown-it-footnote";
 
 const config = (eleventyConfig) => {
+  eleventyConfig.on('eleventy.before', async () => {
+    await esbuild.build({
+      entryPoints: ["web/scripts/*"],
+      outdir: "dist/scripts",
+      platform: "browser",
+      target: "esnext",
+    })
+  });
+
   eleventyConfig.addPassthroughCopy({
     "web/static": "static",
     "web/static/favicon.ico": "favicon.ico",
