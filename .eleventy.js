@@ -1,18 +1,18 @@
-const mathjax = require("eleventy-plugin-mathjax");
-const syntaxHighlight = require("@11ty/eleventy-plugin-syntaxhighlight");
-const purgeCss = require("eleventy-plugin-purgecss");
+import mathjax from "eleventy-plugin-mathjax";
+import syntaxHighlight from "@11ty/eleventy-plugin-syntaxhighlight";
+import purgeCss from "eleventy-plugin-purgecss";
 
-const markdownIt = require("markdown-it");
-const markdownItFootnote = require("markdown-it-footnote");
+import markdownIt from "markdown-it";
+import markdownItFootnote from "markdown-it-footnote";
 
-module.exports = function (eleventyConfig) {
+const config = (eleventyConfig) => {
   eleventyConfig.addPassthroughCopy({
     "web/static": "static",
     "web/static/favicon.ico": "favicon.ico",
     "web/static/robots.txt": "robots.txt"
   });
 
-  eleventyConfig.addCollection("writing", function (collectionApi) {
+  eleventyConfig.addCollection("writing", (collectionApi) => {
     return collectionApi.getFilteredByGlob("web/pages/writing/*.md")
       .filter(page => page.data.author_date) // Missing dates are WIP, don't show
       .sort((a, b) => new Date(b.data.author_date) - new Date(a.data.author_date));
@@ -26,8 +26,11 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPlugin(mathjax);
   eleventyConfig.addPlugin(syntaxHighlight);
   eleventyConfig.addPlugin(purgeCss, {
-    config: './purgecss.config.js',
-    quiet: false,
+    config: {
+      content: ["./dist/**/*.html"],
+      css: ["./dist/**/*.css"],
+    },
+    quiet: true,
   });
 
   return {
@@ -37,3 +40,5 @@ module.exports = function (eleventyConfig) {
     },
   };
 };
+
+export default config;

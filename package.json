@@ -6,6 +6,7 @@
   "repository": "https://github.com/Swiddis/etoast-site.git",
   "author": "Simeon Widdis <sawiddis@gmail.com>",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "build": "npx @11ty/eleventy",
     "dev": "npx @11ty/eleventy --serve",
