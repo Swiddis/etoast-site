@@ -1,5 +1,4 @@
-# Node
 node_modules
-
-# Static site outputs
 dist
+.mise.local.toml
+.vscode
