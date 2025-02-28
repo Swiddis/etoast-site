@@ -46,6 +46,7 @@ def compute_data_for(moon):
 
     return {
         "name": moon.title(),
+        "radius": sum(spice.bodvrd(moon, "RADII", 3)[1])/3,
         "perifocal_distance": params[0],
         "eccentricity": params[1],
         "inclination": params[2],
@@ -64,7 +65,7 @@ def compute_data_for(moon):
 
 def save(data):
     os.makedirs("output", exist_ok=True)
-    with open("output/output.json", "w") as out:
+    with open("output/jupiter.json", "w") as out:
         json.dump(data, out, indent=2)
 
 
@@ -99,6 +100,11 @@ def debug_validate(data):
 
 
 if __name__ == "__main__":
-    data = list(map(compute_data_for, BODIES))
-    save(data)
-    debug_validate(data)
+    moons = list(map(compute_data_for, BODIES))
+    save({
+        "jupiter": {
+            "radius": sum(spice.bodvrd("JUPITER", "RADII", 3)[1])/3
+        },
+        "moons": moons,
+    })
+    debug_validate(moons)
