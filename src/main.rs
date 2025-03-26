@@ -117,18 +117,24 @@ fn update(app: &App, model: &mut Model, _update: Update) {
 fn point_color_at(pt: &Vec2, window: &Rect) -> LinSrgb {
     let grad = Gradient::new(vec![
         lin_srgb(
-            0xff as f32 / 255.0,
-            0xcf as f32 / 255.0,
-            0x67 as f32 / 255.0,
+            0xb8 as f32 / 255.0,
+            0xe9 as f32 / 255.0,
+            0xd4 as f32 / 255.0,
         ),
         lin_srgb(
-            0xd3 as f32 / 255.0,
-            0x32 as f32 / 255.0,
-            0x1d as f32 / 255.0,
+            0xf4 as f32 / 255.0,
+            0x98 as f32 / 255.0,
+            0x5a as f32 / 255.0,
+        ),
+        lin_srgb(
+            0x12 as f32 / 255.0,
+            0x24 as f32 / 255.0,
+            0x3f as f32 / 255.0,
         ),
     ]);
     grad.get(
-        (2.0 * pt.y - window.bottom()) / window.h() + (0.35 * pt.x - window.left()) / window.w(),
+        // (0.1 * pt.y - window.bottom()) / window.h() + (0.9 * pt.x - window.left()) / window.w(),
+        (-1.0 * pt.y - window.bottom()) / window.h()
     )
 }
 
