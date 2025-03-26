@@ -138,7 +138,7 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     // draw.background().color(BLACK);
 
-    for idx in model.living.iter() {
+    for idx in model.living.iter().rev().take(2) {
         let (a, b) = model.graph[*idx];
         let points: Vec<(Vec2, LinSrgb)> = (0..50)
             .map(|i| {
