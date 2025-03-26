@@ -146,20 +146,13 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     for idx in model.living.iter().rev().take(2) {
         let (a, b) = model.graph[*idx];
-        let points: Vec<(Vec2, LinSrgb)> = (0..50)
+        let points: Vec<(Vec2, LinSrgb)> = (0..=50)
             .map(|i| {
                 let pt = SCALE * a.lerp(b, i as f32 / 50.0);
                 (pt, point_color_at(&pt, &window))
+                // (pt, grad(app.elapsed_frames() as f32))
             })
             .collect();
-        draw.ellipse()
-            .radius(0.15 * SCALE)
-            .xy(points[0].0)
-            .color(point_color_at(&points[0].0, &window));
-        draw.ellipse()
-            .radius(0.15 * SCALE)
-            .xy(points[points.len() - 1].0)
-            .color(point_color_at(&points[1].0, &window));
         draw.polyline().weight(0.2 * SCALE).points_colored(points);
     }
 
