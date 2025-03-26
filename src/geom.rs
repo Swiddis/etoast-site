@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use nannou::geom::{IVec2, Vec2};
 
 pub type Segment = (Vec2, Vec2);
@@ -16,12 +18,10 @@ fn on_segment(p: IVec2, q: IVec2, r: IVec2) -> bool {
 fn orientation(p: IVec2, q: IVec2, r: IVec2) -> Orientation {
     let o = (q.y - p.y) as i64 * (r.x - q.x) as i64 - (q.x - p.x) as i64 * (r.y - q.y) as i64;
 
-    if o > 0 {
-        Orientation::Clockwise
-    } else if o < 0 {
-        Orientation::Counterclockwise
-    } else {
-        Orientation::Collinear
+    match o.cmp(&0) {
+        Ordering::Greater => Orientation::Clockwise,
+        Ordering::Less => Orientation::Counterclockwise,
+        Ordering::Equal => Orientation::Collinear,
     }
 }
 

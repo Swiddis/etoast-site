@@ -1,12 +1,13 @@
 extern crate nannou;
 mod geom;
 
+use std::f32::consts::SQRT_2;
+
 use geom::{Segment, intersects};
 use nannou::{color::Gradient, prelude::*};
 use rand::prelude::*;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-const SQRT2: f32 = 1.4142135381698608;
 const SCALE: f32 = 10.0;
 
 fn main() {
@@ -54,20 +55,20 @@ fn as_segments(seg: &Segment, attach_type: u8) -> (Segment, Segment) {
             (seg.1, seg.1 + (seg.0 - seg.1).rotate(-PI / 2.0)),
         ),
         4 => (
-            (seg.0, seg.0 + (seg.1 - seg.0).rotate(PI / 4.0) / SQRT2),
-            (seg.1, seg.0 + (seg.1 - seg.0).rotate(PI / 4.0) / SQRT2),
+            (seg.0, seg.0 + (seg.1 - seg.0).rotate(PI / 4.0) / SQRT_2),
+            (seg.1, seg.0 + (seg.1 - seg.0).rotate(PI / 4.0) / SQRT_2),
         ),
         5 => (
-            (seg.0, seg.0 + (seg.1 - seg.0).rotate(-PI / 4.0) / SQRT2),
-            (seg.1, seg.0 + (seg.1 - seg.0).rotate(-PI / 4.0) / SQRT2),
+            (seg.0, seg.0 + (seg.1 - seg.0).rotate(-PI / 4.0) / SQRT_2),
+            (seg.1, seg.0 + (seg.1 - seg.0).rotate(-PI / 4.0) / SQRT_2),
         ),
         _ => unreachable!(),
     }
 }
 
 fn is_legal(segment: &Segment, rect: &Rect) -> bool {
-    return (segment.0 - segment.1).length() >= 0.8
-        && (rect.contains(segment.0 * SCALE) && rect.contains(segment.1 * SCALE));
+    (segment.0 - segment.1).length() >= 0.8
+        && (rect.contains(segment.0 * SCALE) && rect.contains(segment.1 * SCALE))
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
