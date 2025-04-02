@@ -1,6 +1,7 @@
 ---
 layout: base.njk
 title: Authors I Couldn't Be Me Without
+summary: A thank-you letter for Paul Lockhart and Jay Dragon.
 author_date: April 2, 2025
 tags:
   - blog
