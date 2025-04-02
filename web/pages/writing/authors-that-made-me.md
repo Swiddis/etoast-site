@@ -7,7 +7,9 @@ tags:
   - blog
 ---
 
-# Authors I Couldn't Be Me Without
+# {{ title }}
+
+{{ author_date }}
 
 The idea's been floating in my head for a while of "authors I couldn't be me without." It's a title reserved for those whose work does more than just impact me: they've fundamentally changed how I look at the world. Their works serve as anchor points for interpreting myself and the world around me and, in both cases, have introduced me to hobbies or passions that take up most of my time today. This post is a thank-you letter to these two authors.
 
