@@ -15,7 +15,7 @@ The idea's been floating in my head for a while of "authors I couldn't be me wit
 
 ## Paul Lockhart
 
-> A good problem is something you don't know *how* to solve. That's what makes it a good puzzle, and a good opportunity.
+> A good problem is something you don't know **how** to solve. That's what makes it a good puzzle, and a good opportunity.
 
 As an engineer, it's fitting to start with the one who showed me the essence of mathematics. I originally landed on Lockhart's essay *A Mathematician's Lament* in the middle of high school, right after nearly failing geometry and fully failing algebra. All this while I was sort of enjoying computer classes but hadn't yet found my stride. I took a liking to problem solving without any clear outlet for it.
 
