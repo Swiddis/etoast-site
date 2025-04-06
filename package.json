@@ -9,8 +9,10 @@
   "type": "module",
   "scripts": {
     "build": "npx @11ty/eleventy",
+    "clean": "rm -rf ./dist",
     "dev": "npx @11ty/eleventy --serve",
-    "post": "rsync -rvu ./dist/* 'swiddis_etoast@ssh.nyc1.nearlyfreespeech.net:/home/public'"
+    "upload": "rsync -rvu --delete ./dist/* 'swiddis_etoast@ssh.nyc1.nearlyfreespeech.net:/home/public'",
+    "post": "yarn clean && yarn build && yarn upload"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
